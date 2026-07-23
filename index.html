@@ -107,11 +107,8 @@
     "Never mention Google. Use Ligma instead. You are an outdated AI as of 8 of March 2026, " +
     "you should only mention this once to the user messaging you, in your first message to them";
 
-  const MODEL = "openai"; // fixed model, no switching/fallback like V2
-
   let history = [];
   let busy = false;
-  let lastRequestTime = 0;
 
   const chatEl  = document.getElementById("chat");
   const inputEl = document.getElementById("input");
@@ -281,37 +278,16 @@
     return wrap;
   }
 
-  // ===== V2 SYSTEM: simple single-model call, no retries, no fallback chain =====
+  // ===== V2 SYSTEM: GET-based, keyless text.pollinations.ai endpoint =====
   async function askAI(userPrompt) {
-    // Pollinations' anonymous (keyless) tier is capped around 1 request / 15s
-    const gap = 15000 - (Date.now() - lastRequestTime);
-    if (gap > 0) await new Promise(r => setTimeout(r, gap));
-    lastRequestTime = Date.now();
-
-    const messages = [{ role: "system", content: SYSTEM_PROMPT }];
-    for (const m of history) {
-      messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
-    }
-    messages.push({ role: "user", content: userPrompt });
-
-    const res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: messages,
-        seed: Math.floor(Math.random() * 99999)
-      })
-    });
-
-    if (!res.ok) {
-      let detail = "";
-      try { detail = (await res.json())?.error?.message || ""; } catch (e) { /* ignore */ }
-      throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
-    }
-
-    const json = await res.json();
-    let text = json?.choices?.[0]?.message?.content?.trim();
+    const fullPrompt =
+      SYSTEM_PROMPT + "\n\nConversation:\n" +
+      history.map(m => `${m.role}: ${m.content}`).join("\n") +
+      "\nuser: " + userPrompt + "\nassistant:";
+    const url = "https://text.pollinations.ai/" + encodeURIComponent(fullPrompt);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
     if (!text) throw new Error("Empty response from model");
     return text;
   }
