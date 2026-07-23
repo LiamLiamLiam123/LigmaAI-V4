@@ -23,9 +23,12 @@
     .title { font-family:'Share Tech Mono',monospace; font-size:20px; color:var(--green); letter-spacing:3px; text-shadow:0 0 10px rgba(57,255,20,0.5); }
     .version-badge { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--green-dim); border:1px solid var(--border); padding:2px 7px; border-radius:4px; letter-spacing:1px; }
     .header-right { display:flex; align-items:center; gap:10px; }
-    .model-pill { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--green-dim); background:var(--bg2); border:1px solid var(--border); padding:3px 9px; border-radius:20px; letter-spacing:1px; }
-    .settings-btn { background:none; border:1px solid var(--border); border-radius:7px; color:var(--text-dim); cursor:pointer; padding:5px 9px; font-size:13px; transition:all 0.2s; }
+    .model-pill { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--green-dim); background:var(--bg2); border:1px solid var(--border); padding:3px 9px; border-radius:20px; letter-spacing:1px; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .settings-btn { background:none; border:1px solid var(--border); border-radius:7px; color:var(--text-dim); cursor:pointer; padding:6px 10px; font-size:14px; transition:all 0.2s; }
     .settings-btn:hover { border-color:var(--border2); color:var(--green-muted); }
+
+    .page { display:none; flex:1; overflow:hidden; flex-direction:column; }
+    .page.active { display:flex; }
 
     #chat { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth; }
     #chat::-webkit-scrollbar { width:5px; }
@@ -43,8 +46,11 @@
     .msg pre { background:#060e06; border:1px solid var(--border2); border-radius:7px; padding:12px 14px; overflow-x:auto; margin:8px 0; }
     .msg pre code { font-family:'Share Tech Mono',monospace; font-size:12px; color:#a8ffb0; background:none; padding:0; border:none; border-radius:0; }
     .msg code { font-family:'Share Tech Mono',monospace; font-size:12px; color:#a8ffb0; background:#060e06; padding:2px 6px; border-radius:4px; border:1px solid var(--border); }
-    .msg .code-header { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); background:#0a180a; border:1px solid var(--border2); border-bottom:none; border-radius:7px 7px 0 0; padding:5px 12px; letter-spacing:1px; }
+    .msg .code-header { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); background:#0a180a; border:1px solid var(--border2); border-bottom:none; border-radius:7px 7px 0 0; padding:5px 12px; letter-spacing:1px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .msg .code-header + pre { border-top-left-radius:0; border-top-right-radius:0; margin-top:0; }
+    .copy-btn { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); background:none; border:1px solid var(--border2); border-radius:4px; padding:2px 8px; cursor:pointer; letter-spacing:1px; transition:all 0.15s; }
+    .copy-btn:hover { color:var(--green-muted); border-color:var(--green-dim); }
+    .copy-btn.copied { color:var(--green); border-color:var(--green); }
     .msg strong { color:var(--green-faint); font-weight:700; }
     .msg em { color:var(--green-muted); font-style:italic; }
     .msg .md-line { display:block; min-height:1em; }
@@ -72,7 +78,40 @@
     #send:hover:not(:disabled) { background:#234a23; color:var(--green); box-shadow:0 0 10px rgba(57,255,20,0.15); }
     #send:disabled { opacity:0.4; cursor:not-allowed; }
 
+    #settingsPage { padding:24px; overflow-y:auto; }
+    .settings-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+    .settings-header { font-family:'Share Tech Mono',monospace; font-size:16px; color:var(--green); letter-spacing:3px; }
+    .settings-sub { font-size:12px; color:var(--text-dim); margin-bottom:24px; font-family:'Share Tech Mono',monospace; }
+    .settings-section { margin-bottom:28px; }
+    .section-label { font-family:'Share Tech Mono',monospace; font-size:11px; color:var(--green-dim); letter-spacing:2px; margin-bottom:10px; text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+    .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+    .model-cards { display:flex; flex-direction:column; gap:8px; }
+    .model-card { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:13px 15px; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:12px; }
+    .model-card:hover { border-color:var(--border2); }
+    .model-card.selected { border-color:var(--green-dim); background:var(--bg4); box-shadow:0 0 12px rgba(57,255,20,0.07); }
+    .model-radio { width:16px; height:16px; border-radius:50%; border:2px solid var(--border2); flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+    .model-card.selected .model-radio { border-color:var(--green); background:var(--green); }
+    .model-card.selected .model-radio::after { content:''; width:6px; height:6px; border-radius:50%; background:var(--bg); }
+    .model-info { flex:1; min-width:0; }
+    .model-name { font-family:'Share Tech Mono',monospace; font-size:13px; color:var(--green-muted); margin-bottom:3px; }
+    .model-card.selected .model-name { color:var(--green); }
+    .model-desc { font-size:11px; color:var(--text-dim); line-height:1.5; }
+    .tags { display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; }
+    .tag { font-family:'Share Tech Mono',monospace; font-size:9px; padding:2px 7px; border-radius:4px; border:1px solid var(--border); color:var(--text-dim); }
+    .tag-smart   { border-color:#2a5a4a; color:#6adfaa; }
+    .tag-fast    { border-color:#2a4a5a; color:#6aaadf; }
+    .tag-free    { border-color:#2a5a2a; color:#6adf8a; }
+    .tag-code    { border-color:#3a4a2a; color:#aadf6a; }
+    .tag-chat    { border-color:#5a3a4a; color:#df6aaa; }
+    .back-btn { padding:7px 14px; background:#1a4a1a; border:1px solid #2a6a2a; border-radius:8px; color:var(--green-muted); font-family:'Share Tech Mono',monospace; font-size:11px; cursor:pointer; letter-spacing:1px; transition:all 0.2s; }
+    .back-btn:hover { background:#234a23; color:var(--green); }
+    .back-btn-bottom { margin-top:16px; padding:11px 20px; font-size:13px; }
     .footer-info { font-family:'Share Tech Mono',monospace; font-size:10px; color:#1e3d1e; text-align:center; padding:5px; background:var(--bg); letter-spacing:1px; flex-shrink:0; }
+
+    #imageBtn { padding:11px 14px; background:var(--bg2); border:1px solid var(--border2); border-radius:8px; color:var(--green-muted); font-size:15px; cursor:pointer; transition:all 0.2s; align-self:flex-end; }
+    #imageBtn:hover:not(:disabled) { background:#123012; border-color:var(--green-dim); color:var(--green); }
+    #imageBtn:disabled { opacity:0.4; cursor:not-allowed; }
+    .msg img { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
   </style>
 </head>
 <body>
@@ -84,36 +123,196 @@
     <span class="version-badge">V4</span>
   </div>
   <div class="header-right">
-    <span class="model-pill">LIGMA-AI</span>
+    <span class="model-pill" id="modelPill">LOADING…</span>
+    <button class="settings-btn" id="settingsBtn" title="Settings">⚙</button>
   </div>
 </header>
 
-<div id="chat">
-  <div class="welcome">
-    <h2>// LIGMA AI //</h2>
-    <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.</p>
+<!-- CHAT PAGE -->
+<div class="page active" id="chatPage">
+  <div id="chat">
+    <div class="welcome">
+      <h2>// LIGMA AI V4 //</h2>
+      <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.<br><br>⚙ Open settings to pick a model for the job.<br>🖼 Type a prompt and hit the image icon to generate a picture.</p>
+    </div>
+  </div>
+  <div id="inputBox">
+    <textarea id="input" rows="1" placeholder="Send a message…"></textarea>
+    <button id="imageBtn" title="Generate an image from this prompt">🖼</button>
+    <button id="send">SEND ⏎</button>
   </div>
 </div>
-<div id="inputBox">
-  <textarea id="input" rows="1" placeholder="Send a message…"></textarea>
-  <button id="send">SEND ⏎</button>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="settingsPage">
+  <div class="settings-top">
+    <div class="settings-header">// SETTINGS</div>
+    <button class="back-btn" onclick="showChat()">← BACK TO CHAT</button>
+  </div>
+  <div class="settings-sub">CHOOSE A MODEL FOR THE JOB</div>
+
+  <div class="settings-section">
+    <div class="section-label">Texting / Talking</div>
+    <div class="model-cards">
+      <div class="model-card selected" data-model="llama-3.1-8b-instant" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-INSTANT</div>
+          <div class="model-desc">Small and very fast. Great for casual back-and-forth chat and quick replies.</div>
+          <div class="tags">
+            <span class="tag tag-chat">CHAT</span>
+            <span class="tag tag-fast">FASTEST</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="llama-4-scout-instruct" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-SCOUT</div>
+          <div class="model-desc">Newer, a bit sharper than Instant, still fast enough for real-time conversation.</div>
+          <div class="tags">
+            <span class="tag tag-chat">CHAT</span>
+            <span class="tag tag-fast">FAST</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="section-label">Coding</div>
+    <div class="model-cards">
+      <div class="model-card" data-model="openai/gpt-oss-120b" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-OSS-120B</div>
+          <div class="model-desc">Strong step-by-step reasoning. Best pick for writing, debugging, and explaining code.</div>
+          <div class="tags">
+            <span class="tag tag-code">CODING</span>
+            <span class="tag tag-smart">REASONING</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="openai/gpt-oss-20b" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-OSS-20B</div>
+          <div class="model-desc">Lighter, faster version of OSS-120B. Good for quick coding help when you don't need max reasoning.</div>
+          <div class="tags">
+            <span class="tag tag-code">CODING</span>
+            <span class="tag tag-fast">FAST</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="section-label">Etc / General</div>
+    <div class="model-cards">
+      <div class="model-card" data-model="qwen/qwen3.6-27b" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-3.6-27B</div>
+          <div class="model-desc">Balanced all-rounder — research, writing, general questions, and multi-step tasks.</div>
+          <div class="tags">
+            <span class="tag tag-smart">SMARTEST</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="moonshotai/kimi-k2-instruct-0905" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-K2</div>
+          <div class="model-desc">Large open model with broad world knowledge. Good for long, detailed answers.</div>
+          <div class="tags">
+            <span class="tag tag-smart">DETAILED</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="meta-llama/llama-4-maverick-17b-128e-instruct" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-MAVERICK</div>
+          <div class="model-desc">Newer general-purpose model, wide expert mix. Solid default if you're not sure what to pick.</div>
+          <div class="tags">
+            <span class="tag tag-smart">GENERAL</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="groq/compound" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-COMPOUND</div>
+          <div class="model-desc">Agentic model that can use tools like web search behind the scenes for more current answers.</div>
+          <div class="tags">
+            <span class="tag tag-smart">TOOLS</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-btn back-btn-bottom" onclick="showChat()">← BACK TO CHAT</button>
 </div>
+
 <div class="footer-info">LIGMA AI — MADE BY LIAM STEPHENSON</div>
 
 <script>
-  // ===== V2 SYSTEM: single fixed model, single system prompt, no model picker / no fallback chain =====
+  // ===== V2 SYSTEM: single system prompt, direct call, no fallback chain — now via Groq =====
   const SYSTEM_PROMPT =
     "You are LigmaAI, a friendly and helpful assistant made by Liam Stephenson. " +
-    "Never mention Google. Use Ligma instead. You are the latest AI" +
+    "Never mention Google. Use Ligma instead. You are an outdated AI as of 8 of March 2026, " +
     "you should only mention this once to the user messaging you, in your first message to them";
 
+  const MODEL_NAMES = {
+    "openai/gpt-oss-120b":          "LIGMA-OSS-120B",
+    "openai/gpt-oss-20b":           "LIGMA-OSS-20B",
+    "llama-3.1-8b-instant":         "LIGMA-INSTANT",
+    "llama-4-scout-instruct":       "LIGMA-SCOUT",
+    "qwen/qwen3.6-27b":             "LIGMA-3.6-27B",
+    "moonshotai/kimi-k2-instruct-0905": "LIGMA-K2",
+    "meta-llama/llama-4-maverick-17b-128e-instruct": "LIGMA-MAVERICK",
+    "groq/compound":                "LIGMA-COMPOUND"
+  };
+
+  let selectedModel = "llama-3.1-8b-instant";
   let history = [];
   let busy = false;
   const apiKey = "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";
 
-  const chatEl  = document.getElementById("chat");
-  const inputEl = document.getElementById("input");
-  const sendBtn = document.getElementById("send");
+  const chatEl    = document.getElementById("chat");
+  const inputEl   = document.getElementById("input");
+  const sendBtn   = document.getElementById("send");
+  const imageBtn  = document.getElementById("imageBtn");
+  const modelPill = document.getElementById("modelPill");
+  modelPill.textContent = MODEL_NAMES[selectedModel];
+
+  document.getElementById("settingsBtn").onclick = () => {
+    document.getElementById("chatPage").classList.remove("active");
+    document.getElementById("settingsPage").classList.add("active");
+  };
+
+  function showChat() {
+    document.getElementById("settingsPage").classList.remove("active");
+    document.getElementById("chatPage").classList.add("active");
+    inputEl.focus();
+  }
+
+  function selectModel(card) {
+    document.querySelectorAll(".model-card").forEach(c => c.classList.remove("selected"));
+    card.classList.add("selected");
+    selectedModel = card.dataset.model;
+    modelPill.textContent = MODEL_NAMES[selectedModel];
+  }
 
   inputEl.addEventListener("input", () => {
     inputEl.style.height = "auto";
@@ -125,7 +324,7 @@
     if (w) w.remove();
   }
 
-  // ---- Markdown parsing (kept from V3 look) ----
+  // ---- Markdown parsing ----
   function parseMarkdown(text) {
     const lines = text.split("\n");
     let html = "";
@@ -174,7 +373,7 @@
         } else {
           inCode = false;
           const lang = codeLang ? codeLang.toUpperCase() : "CODE";
-          html += '<div class="code-header">' + escHtml(lang) + '</div>';
+          html += '<div class="code-header"><span>' + escHtml(lang) + '</span><button class="copy-btn" onclick="copyCode(this)">COPY</button></div>';
           html += '<pre><code>' + codeLines.map(escHtml).join("\n") + '</code></pre>';
           codeLang = ""; codeLines = [];
         }
@@ -220,6 +419,23 @@
   function escHtml(s) {
     return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
+
+  window.copyCode = function(btn) {
+    const codeEl = btn.closest(".code-header").nextElementSibling.querySelector("code");
+    const text = codeEl.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const original = btn.textContent;
+      btn.textContent = "COPIED";
+      btn.classList.add("copied");
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.classList.remove("copied");
+      }, 1500);
+    }).catch(() => {
+      btn.textContent = "FAILED";
+      setTimeout(() => { btn.textContent = "COPY"; }, 1500);
+    });
+  };
 
   function typeMessage(msgEl, text, onDone) {
     const chars = [...text];
@@ -271,7 +487,7 @@
     lbl.textContent = "LIGMA AI";
     const msg = document.createElement("div");
     msg.className = "msg bot thinking";
-    msg.innerHTML = '…thinking…<span class="cursor"></span>';
+    msg.innerHTML = 'Thinking...<span class="cursor"></span>';
     wrap.appendChild(lbl);
     wrap.appendChild(msg);
     chatEl.appendChild(wrap);
@@ -279,7 +495,7 @@
     return wrap;
   }
 
-  // ===== V2 SYSTEM: single fixed model, single system prompt, now via Groq =====
+  // ===== V2 SYSTEM: single call to the currently selected model, no retries/fallback =====
   async function askAI(userPrompt) {
     const messages = [{ role: "system", content: SYSTEM_PROMPT }];
     for (const m of history) {
@@ -294,7 +510,7 @@
         "Authorization": "Bearer " + apiKey
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: selectedModel,
         messages: messages
       })
     });
@@ -311,6 +527,61 @@
     return text;
   }
 
+  // ===== Free, keyless image generation via Pollinations =====
+  function addImageMessage(prompt) {
+    removeWelcome();
+    const wrap = document.createElement("div");
+    wrap.className = "msg-wrapper bot";
+    const lbl = document.createElement("div");
+    lbl.className = "msg-label";
+    lbl.textContent = "LIGMA AI";
+    const msg = document.createElement("div");
+    msg.className = "msg bot thinking";
+    msg.innerHTML = 'Generating image...<span class="cursor"></span>';
+    wrap.appendChild(lbl);
+    wrap.appendChild(msg);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    const seed = Math.floor(Math.random() * 999999);
+    const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) +
+      "?width=1024&height=1024&seed=" + seed + "&nologo=true";
+
+    const img = new Image();
+    img.onload = () => {
+      msg.classList.remove("thinking");
+      msg.innerHTML = "";
+      const imgEl = document.createElement("img");
+      imgEl.src = url;
+      imgEl.alt = prompt;
+      msg.appendChild(imgEl);
+      chatEl.scrollTop = chatEl.scrollHeight;
+      busy = false;
+      sendBtn.disabled = false;
+      imageBtn.disabled = false;
+    };
+    img.onerror = () => {
+      msg.classList.remove("thinking");
+      msg.innerHTML = "⚠️ Image generation failed";
+      busy = false;
+      sendBtn.disabled = false;
+      imageBtn.disabled = false;
+    };
+    img.src = url;
+  }
+
+  imageBtn.addEventListener("click", () => {
+    const text = inputEl.value.trim();
+    if (!text || busy) return;
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    busy = true;
+    sendBtn.disabled = true;
+    imageBtn.disabled = true;
+    addMessage(text, "user");
+    addImageMessage(text);
+  });
+
   async function handleSend() {
     const text = inputEl.value.trim();
     if (!text || busy) return;
@@ -318,6 +589,7 @@
     inputEl.style.height = "auto";
     busy = true;
     sendBtn.disabled = true;
+    imageBtn.disabled = true;
 
     addMessage(text, "user");
     history.push({ role: "user", content: text });
@@ -335,6 +607,7 @@
 
     busy = false;
     sendBtn.disabled = false;
+    imageBtn.disabled = false;
     inputEl.focus();
   }
 
