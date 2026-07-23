@@ -109,6 +109,316 @@
 
   let history = [];
   let busy = false;
+  const apiKey = "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";
+
+  const chatEl  = document.getElementById("chat");
+  const inputEl = document.getElementById("input");
+  const sendBtn = document.getElementById("send");
+
+  inputEl.addEventListener("input", () => {
+    inputEl.style.height = "auto";
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+  });
+
+  function removeWelcome() {
+    const w = chatEl.querySelector(".welcome");
+    if (w) w.remove();
+  }
+
+  // ---- Markdown parsing (kept from V3 look) ----
+  function parseMarkdown(text) {
+    const lines = text.split("\n");
+    let html = "";
+    let inCode = false;
+    let codeLang = "";
+    let codeLines = [];
+    let inTable = false;
+    let tableRows = [];
+
+    function flushTable() {
+      if (!tableRows.length) return;
+      let t = '<table>';
+      tableRows.forEach((row, idx) => {
+        const cleaned = row.replace(/^\|/, '').replace(/\|$/, '').split("|").map(c => c.trim());
+        if (idx === 0) {
+          t += '<tr>' + cleaned.map(c => '<th>' + inlineFormat(c) + '</th>').join('') + '</tr>';
+        } else if (/^[\s|:-]+$/.test(row)) {
+          // separator row, skip
+        } else {
+          t += '<tr>' + cleaned.map(c => '<td>' + inlineFormat(c) + '</td>').join('') + '</tr>';
+        }
+      });
+      t += '</table>';
+      html += t;
+      tableRows = [];
+      inTable = false;
+    }
+
+    function inlineFormat(s) {
+      s = escHtml(s);
+      s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+      s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+      s = s.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+      return s;
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.trim().startsWith("```")) {
+        if (inTable) flushTable();
+        if (!inCode) {
+          inCode = true;
+          codeLang = line.trim().slice(3).trim();
+          codeLines = [];
+        } else {
+          inCode = false;
+          const lang = codeLang ? codeLang.toUpperCase() : "CODE";
+          html += '<div class="code-header">' + escHtml(lang) + '</div>';
+          html += '<pre><code>' + codeLines.map(escHtml).join("\n") + '</code></pre>';
+          codeLang = ""; codeLines = [];
+        }
+        continue;
+      }
+      if (inCode) { codeLines.push(line); continue; }
+
+      if (line.includes("|")) {
+        inTable = true;
+        tableRows.push(line);
+        continue;
+      } else if (inTable) {
+        flushTable();
+      }
+
+      if (line.startsWith("### ")) { html += '<h3>' + inlineFormat(line.slice(4)) + '</h3>'; continue; }
+      if (line.startsWith("## "))  { html += '<h2>' + inlineFormat(line.slice(3)) + '</h2>'; continue; }
+      if (line.startsWith("# "))   { html += '<h1>' + inlineFormat(line.slice(2)) + '</h1>'; continue; }
+
+      if (/^---+$/.test(line.trim())) { html += '<hr>'; continue; }
+
+      if (line.startsWith("> ")) { html += '<blockquote>' + inlineFormat(line.slice(2)) + '</blockquote>'; continue; }
+
+      if (/^[-*] /.test(line)) { html += '<ul><li>' + inlineFormat(line.slice(2)) + '</li></ul>'; continue; }
+
+      if (/^\d+\. /.test(line)) { html += '<ol><li>' + inlineFormat(line.replace(/^\d+\. /, '')) + '</li></ol>'; continue; }
+
+      if (line.trim() === "") { html += '<span class="md-line">&nbsp;</span>'; continue; }
+
+      html += '<span class="md-line">' + inlineFormat(line) + '</span>';
+    }
+
+    if (inCode && codeLines.length) {
+      html += '<pre><code>' + codeLines.map(escHtml).join("\n") + '</code></pre>';
+    }
+    if (inTable) flushTable();
+
+    html = html.replace(/<\/ul>\s*<ul>/g, "").replace(/<\/ol>\s*<ol>/g, "");
+
+    return html;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function typeMessage(msgEl, text, onDone) {
+    const chars = [...text];
+    let i = 0;
+    msgEl.innerHTML = "";
+    const speed = 12;
+    function tick() {
+      i++;
+      msgEl.innerHTML = parseMarkdown(chars.slice(0, i).join(""));
+      chatEl.scrollTop = chatEl.scrollHeight;
+      if (i < chars.length) {
+        setTimeout(tick, speed);
+      } else {
+        if (onDone) onDone();
+      }
+    }
+    tick();
+  }
+
+  function addMessage(text, type, animate) {
+    removeWelcome();
+    const wrap = document.createElement("div");
+    wrap.className = "msg-wrapper " + type;
+    const lbl = document.createElement("div");
+    lbl.className = "msg-label";
+    lbl.textContent = type === "user" ? "YOU" : "LIGMA AI";
+    const msg = document.createElement("div");
+    msg.className = "msg " + type;
+    if (type === "user") {
+      msg.textContent = text;
+    } else if (animate) {
+      typeMessage(msg, text);
+    } else {
+      msg.innerHTML = parseMarkdown(text);
+    }
+    wrap.appendChild(lbl);
+    wrap.appendChild(msg);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return msg;
+  }
+
+  function addThinking() {
+    removeWelcome();
+    const wrap = document.createElement("div");
+    wrap.className = "msg-wrapper bot";
+    const lbl = document.createElement("div");
+    lbl.className = "msg-label";
+    lbl.textContent = "LIGMA AI";
+    const msg = document.createElement("div");
+    msg.className = "msg bot thinking";
+    msg.innerHTML = '…thinking…<span class="cursor"></span>';
+    wrap.appendChild(lbl);
+    wrap.appendChild(msg);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return wrap;
+  }
+
+  // ===== V2 SYSTEM: single fixed model, single system prompt, now via Groq =====
+  async function askAI(userPrompt) {
+    const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+    for (const m of history) {
+      messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
+    }
+    messages.push({ role: "user", content: userPrompt });
+
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: messages
+      })
+    });
+
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.json())?.error?.message || ""; } catch (e) { /* ignore */ }
+      throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
+    }
+
+    const json = await res.json();
+    let text = json?.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("Empty response from model");
+    return text;
+  }
+
+  async function handleSend() {
+    const text = inputEl.value.trim();
+    if (!text || busy) return;
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    busy = true;
+    sendBtn.disabled = true;
+
+    addMessage(text, "user");
+    history.push({ role: "user", content: text });
+    const thinking = addThinking();
+
+    try {
+      const reply = await askAI(text);
+      thinking.remove();
+      addMessage(reply, "bot", true);
+      history.push({ role: "assistant", content: reply });
+    } catch (e) {
+      thinking.remove();
+      addMessage("⚠️ " + (e.message || "Network error"), "bot");
+    }
+
+    busy = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+
+  sendBtn.addEventListener("click", handleSend);
+  inputEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  });
+</script>
+</body>
+</html>    .msg-wrapper.bot  { align-items:flex-start; }
+    .msg-label { font-family:'Share Tech Mono',monospace; font-size:10px; color:#3a6a3a; margin-bottom:4px; letter-spacing:1px; padding:0 4px; }
+    .msg { max-width:72%; padding:11px 16px; border-radius:10px; white-space:pre-wrap; line-height:1.6; font-size:14px; }
+    .msg.user { background:var(--user-bg); color:var(--green-faint); border:1px solid var(--border2); border-bottom-right-radius:2px; }
+    .msg.bot  { background:var(--bot-bg); color:var(--text); border:1px solid var(--border); border-bottom-left-radius:2px; }
+    .msg.thinking { color:#3a7a3a; font-family:'Share Tech Mono',monospace; font-size:13px; border-style:dashed; }
+    .msg pre { background:#060e06; border:1px solid var(--border2); border-radius:7px; padding:12px 14px; overflow-x:auto; margin:8px 0; }
+    .msg pre code { font-family:'Share Tech Mono',monospace; font-size:12px; color:#a8ffb0; background:none; padding:0; border:none; border-radius:0; }
+    .msg code { font-family:'Share Tech Mono',monospace; font-size:12px; color:#a8ffb0; background:#060e06; padding:2px 6px; border-radius:4px; border:1px solid var(--border); }
+    .msg .code-header { font-family:'Share Tech Mono',monospace; font-size:10px; color:var(--text-dim); background:#0a180a; border:1px solid var(--border2); border-bottom:none; border-radius:7px 7px 0 0; padding:5px 12px; letter-spacing:1px; }
+    .msg .code-header + pre { border-top-left-radius:0; border-top-right-radius:0; margin-top:0; }
+    .msg strong { color:var(--green-faint); font-weight:700; }
+    .msg em { color:var(--green-muted); font-style:italic; }
+    .msg .md-line { display:block; min-height:1em; }
+    .msg h1,.msg h2,.msg h3 { font-family:'Share Tech Mono',monospace; color:var(--green); margin:10px 0 4px; letter-spacing:1px; }
+    .msg h1 { font-size:16px; } .msg h2 { font-size:14px; } .msg h3 { font-size:13px; }
+    .msg ul,.msg ol { padding-left:20px; margin:6px 0; }
+    .msg li { margin:3px 0; line-height:1.6; }
+    .msg table { border-collapse:collapse; width:100%; margin:8px 0; font-size:12px; }
+    .msg th { background:var(--bg4); color:var(--green); font-family:'Share Tech Mono',monospace; padding:6px 10px; border:1px solid var(--border2); text-align:left; font-size:11px; letter-spacing:1px; }
+    .msg td { padding:6px 10px; border:1px solid var(--border); color:var(--text); vertical-align:top; }
+    .msg tr:nth-child(even) td { background:var(--bg2); }
+    .msg blockquote { border-left:3px solid var(--green-dim); margin:6px 0; padding:4px 12px; color:var(--text-dim); font-style:italic; }
+    .msg hr { border:none; border-top:1px solid var(--border); margin:10px 0; }
+    .cursor { display:inline-block; width:8px; height:14px; background:var(--green); margin-left:2px; vertical-align:middle; animation:blink 0.7s step-end infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+    .welcome { text-align:center; margin:auto; padding:30px; color:#2a5a2a; font-family:'Share Tech Mono',monospace; }
+    .welcome h2 { color:#3a7a3a; font-size:18px; margin-bottom:10px; letter-spacing:2px; }
+    .welcome p  { font-size:12px; line-height:1.8; }
+
+    #inputBox { display:flex; align-items:flex-end; padding:14px 16px; background:var(--bg3); border-top:1px solid var(--border); gap:10px; flex-shrink:0; }
+    #input { flex:1; padding:11px 14px; border-radius:8px; border:1px solid var(--border); background:var(--bg2); color:var(--text); font-family:'Exo 2',sans-serif; font-size:14px; resize:none; max-height:120px; outline:none; transition:border-color 0.2s; line-height:1.5; }
+    #input:focus { border-color:var(--border2); box-shadow:0 0 8px rgba(57,255,20,0.06); }
+    #input::placeholder { color:#2a5a2a; }
+    #send { padding:11px 18px; background:#1a4a1a; border:1px solid #2a6a2a; border-radius:8px; color:var(--green-muted); font-family:'Share Tech Mono',monospace; font-size:13px; cursor:pointer; letter-spacing:1px; transition:all 0.2s; white-space:nowrap; align-self:flex-end; }
+    #send:hover:not(:disabled) { background:#234a23; color:var(--green); box-shadow:0 0 10px rgba(57,255,20,0.15); }
+    #send:disabled { opacity:0.4; cursor:not-allowed; }
+
+    .footer-info { font-family:'Share Tech Mono',monospace; font-size:10px; color:#1e3d1e; text-align:center; padding:5px; background:var(--bg); letter-spacing:1px; flex-shrink:0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-dot"></div>
+    <span class="title">LIGMA AI</span>
+    <span class="version-badge">V4</span>
+  </div>
+  <div class="header-right">
+    <span class="model-pill">LIGMA-AI</span>
+  </div>
+</header>
+
+<div id="chat">
+  <div class="welcome">
+    <h2>// LIGMA AI //</h2>
+    <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.</p>
+  </div>
+</div>
+<div id="inputBox">
+  <textarea id="input" rows="1" placeholder="Send a message…"></textarea>
+  <button id="send">SEND ⏎</button>
+</div>
+<div class="footer-info">LIGMA AI — MADE BY LIAM STEPHENSON</div>
+
+<script>
+  // ===== V2 SYSTEM: single fixed model, single system prompt, no model picker / no fallback chain =====
+  const SYSTEM_PROMPT =
+    "You are LigmaAI, a friendly and helpful assistant made by Liam Stephenson. " +
+    "Never mention Google. Use Ligma instead. You are an outdated AI as of 8 of March 2026, " +
+    "you should only mention this once to the user messaging you, in your first message to them";
+
+  let history = [];
+  let busy = false;
 
   const chatEl  = document.getElementById("chat");
   const inputEl = document.getElementById("input");
