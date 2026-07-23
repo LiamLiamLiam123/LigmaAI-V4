@@ -111,7 +111,11 @@
     #imageBtn { padding:11px 14px; background:var(--bg2); border:1px solid var(--border2); border-radius:8px; color:var(--green-muted); font-size:15px; cursor:pointer; transition:all 0.2s; align-self:flex-end; }
     #imageBtn:hover:not(:disabled) { background:#123012; border-color:var(--green-dim); color:var(--green); }
     #imageBtn:disabled { opacity:0.4; cursor:not-allowed; }
+    #videoBtn { padding:11px 14px; background:var(--bg2); border:1px solid var(--border2); border-radius:8px; color:var(--green-muted); font-size:15px; cursor:pointer; transition:all 0.2s; align-self:flex-end; }
+    #videoBtn:hover:not(:disabled) { background:#123012; border-color:var(--green-dim); color:var(--green); }
+    #videoBtn:disabled { opacity:0.4; cursor:not-allowed; }
     .msg img { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
+    .msg video { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
   </style>
 </head>
 <body>
@@ -133,12 +137,13 @@
   <div id="chat">
     <div class="welcome">
       <h2>// LIGMA AI V4 //</h2>
-      <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.<br><br>⚙ Open settings to pick a model for the job.<br>🖼 Type a prompt and hit the image icon to generate a picture.</p>
+      <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.<br><br>⚙ Open settings to pick a model for the job.<br>🖼 Generate an image from your prompt.<br>🎬 Generate a short video from your prompt.</p>
     </div>
   </div>
   <div id="inputBox">
     <textarea id="input" rows="1" placeholder="Send a message…"></textarea>
     <button id="imageBtn" title="Generate an image from this prompt">🖼</button>
+    <button id="videoBtn" title="Generate a video from this prompt">🎬</button>
     <button id="send">SEND ⏎</button>
   </div>
 </div>
@@ -293,7 +298,10 @@
   const inputEl   = document.getElementById("input");
   const sendBtn   = document.getElementById("send");
   const imageBtn  = document.getElementById("imageBtn");
+  const videoBtn  = document.getElementById("videoBtn");
   const modelPill = document.getElementById("modelPill");
+
+  const pollinationsKey = "sk_KkL8Ymltg4Aqsj19dbEfNDKKKcRCJTEv";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -559,6 +567,7 @@
       busy = false;
       sendBtn.disabled = false;
       imageBtn.disabled = false;
+      videoBtn.disabled = false;
     };
     img.onerror = () => {
       msg.classList.remove("thinking");
@@ -566,6 +575,7 @@
       busy = false;
       sendBtn.disabled = false;
       imageBtn.disabled = false;
+      videoBtn.disabled = false;
     };
     img.src = url;
   }
@@ -578,8 +588,71 @@
     busy = true;
     sendBtn.disabled = true;
     imageBtn.disabled = true;
+    videoBtn.disabled = true;
     addMessage(text, "user");
     addImageMessage(text);
+  });
+
+  // ===== Video generation via Pollinations (needs a free key, unlike images) =====
+  async function addVideoMessage(userPrompt) {
+    removeWelcome();
+    const wrap = document.createElement("div");
+    wrap.className = "msg-wrapper bot";
+    const lbl = document.createElement("div");
+    lbl.className = "msg-label";
+    lbl.textContent = "LIGMA AI";
+    const msg = document.createElement("div");
+    msg.className = "msg bot thinking";
+    msg.innerHTML = 'Generating video, this can take a bit...<span class="cursor"></span>';
+    wrap.appendChild(lbl);
+    wrap.appendChild(msg);
+    chatEl.appendChild(wrap);
+    chatEl.scrollTop = chatEl.scrollHeight;
+
+    try {
+      const url = "https://gen.pollinations.ai/video/" + encodeURIComponent(userPrompt) +
+        "?model=wan-fast&width=768&height=768&duration=4";
+      const res = await fetch(url, {
+        headers: { "Authorization": "Bearer " + pollinationsKey }
+      });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.json())?.error?.message || ""; } catch (e) { /* ignore */ }
+        throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
+      }
+      const blob = await res.blob();
+      const videoUrl = URL.createObjectURL(blob);
+
+      msg.classList.remove("thinking");
+      msg.innerHTML = "";
+      const videoEl = document.createElement("video");
+      videoEl.src = videoUrl;
+      videoEl.controls = true;
+      videoEl.autoplay = false;
+      msg.appendChild(videoEl);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    } catch (e) {
+      msg.classList.remove("thinking");
+      msg.innerHTML = "⚠️ " + (e.message || "Video generation failed");
+    }
+
+    busy = false;
+    sendBtn.disabled = false;
+    imageBtn.disabled = false;
+    videoBtn.disabled = false;
+  }
+
+  videoBtn.addEventListener("click", () => {
+    const text = inputEl.value.trim();
+    if (!text || busy) return;
+    inputEl.value = "";
+    inputEl.style.height = "auto";
+    busy = true;
+    sendBtn.disabled = true;
+    imageBtn.disabled = true;
+    videoBtn.disabled = true;
+    addMessage(text, "user");
+    addVideoMessage(text);
   });
 
   async function handleSend() {
@@ -590,6 +663,7 @@
     busy = true;
     sendBtn.disabled = true;
     imageBtn.disabled = true;
+    videoBtn.disabled = true;
 
     addMessage(text, "user");
     history.push({ role: "user", content: text });
@@ -608,6 +682,7 @@
     busy = false;
     sendBtn.disabled = false;
     imageBtn.disabled = false;
+    videoBtn.disabled = false;
     inputEl.focus();
   }
 
