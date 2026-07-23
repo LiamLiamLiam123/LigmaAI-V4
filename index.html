@@ -85,14 +85,13 @@
   </div>
   <div class="header-right">
     <span class="model-pill">LIGMA-AI</span>
-    <button class="settings-btn" id="keyBtn" title="Set Pollinations API key">🔑</button>
   </div>
 </header>
 
 <div id="chat">
   <div class="welcome">
     <h2>// LIGMA AI //</h2>
-    <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.<br><br>🔑 Click the key icon and add your free Pollinations API key to get started.</p>
+    <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.</p>
   </div>
 </div>
 <div id="inputBox">
@@ -112,25 +111,11 @@
 
   let history = [];
   let busy = false;
-  let apiKey = "";
-  try { apiKey = localStorage.getItem("ligmaai_key") || ""; } catch (e) { /* storage unavailable, ignore */ }
+  let lastRequestTime = 0;
 
   const chatEl  = document.getElementById("chat");
   const inputEl = document.getElementById("input");
   const sendBtn = document.getElementById("send");
-  const keyBtn  = document.getElementById("keyBtn");
-
-  function promptForKey() {
-    const val = prompt(
-      "Enter your Pollinations API key (get a free pk_ key at enter.pollinations.ai):",
-      apiKey
-    );
-    if (val !== null) {
-      apiKey = val.trim();
-      try { localStorage.setItem("ligmaai_key", apiKey); } catch (e) { /* ignore */ }
-    }
-  }
-  keyBtn.addEventListener("click", promptForKey);
 
   inputEl.addEventListener("input", () => {
     inputEl.style.height = "auto";
@@ -298,9 +283,10 @@
 
   // ===== V2 SYSTEM: simple single-model call, no retries, no fallback chain =====
   async function askAI(userPrompt) {
-    if (!apiKey) {
-      throw new Error("No API key set — click 🔑 in the header and add a free Pollinations key from enter.pollinations.ai");
-    }
+    // Pollinations' anonymous (keyless) tier is capped around 1 request / 15s
+    const gap = 15000 - (Date.now() - lastRequestTime);
+    if (gap > 0) await new Promise(r => setTimeout(r, gap));
+    lastRequestTime = Date.now();
 
     const messages = [{ role: "system", content: SYSTEM_PROMPT }];
     for (const m of history) {
@@ -310,10 +296,7 @@
 
     const res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
         messages: messages,
