@@ -263,6 +263,64 @@
           </div>
         </div>
       </div>
+      <div class="model-card" data-model="gemini-2.5-flash" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-GEMINI</div>
+          <div class="model-desc">Google's model, routed directly (not through Groq). Needs your own free Google AI key on first use.</div>
+          <div class="tags">
+            <span class="tag tag-smart">GOOGLE</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="section-label">Video</div>
+    <div class="model-cards">
+      <div class="model-card video-model selected" data-model="wan-fast" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-VID-FAST</div>
+          <div class="model-desc">Quickest render, lowest Pollen cost. Best default for trying prompts out.</div>
+          <div class="tags">
+            <span class="tag tag-fast">FAST</span>
+            <span class="tag tag-free">CHEAP</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card video-model" data-model="seedance-pro" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-VID-PRO</div>
+          <div class="model-desc">Sharper motion and detail than Fast. Costs a bit more Pollen per clip.</div>
+          <div class="tags">
+            <span class="tag tag-smart">QUALITY</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card video-model" data-model="veo" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-VID-VEO</div>
+          <div class="model-desc">Google's video model. Strong realism, best for lifelike scenes.</div>
+          <div class="tags">
+            <span class="tag tag-smart">REALISTIC</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card video-model" data-model="ltx-2" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-VID-LTX</div>
+          <div class="model-desc">Lightweight and fast, good for quick stylized or abstract clips.</div>
+          <div class="tags">
+            <span class="tag tag-fast">FAST</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -286,10 +344,14 @@
     "qwen/qwen3.6-27b":             "LIGMA-3.6-27B",
     "moonshotai/kimi-k2-instruct-0905": "LIGMA-K2",
     "meta-llama/llama-4-maverick-17b-128e-instruct": "LIGMA-MAVERICK",
-    "groq/compound":                "LIGMA-COMPOUND"
+    "groq/compound":                "LIGMA-COMPOUND",
+    "gemini-2.5-flash":             "LIGMA-GEMINI"
   };
 
+  const geminiKey = "AQ.Ab8RN6LFsdPfx_zOcRwIDECJROPG-o0zdZ-kjGCT_w0K0UU_Zw";
+
   let selectedModel = "llama-3.1-8b-instant";
+  let selectedVideoModel = "wan-fast";
   let history = [];
   let busy = false;
   const apiKey = "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";
@@ -316,10 +378,16 @@
   }
 
   function selectModel(card) {
-    document.querySelectorAll(".model-card").forEach(c => c.classList.remove("selected"));
-    card.classList.add("selected");
-    selectedModel = card.dataset.model;
-    modelPill.textContent = MODEL_NAMES[selectedModel];
+    if (card.classList.contains("video-model")) {
+      document.querySelectorAll(".video-model").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      selectedVideoModel = card.dataset.model;
+    } else {
+      document.querySelectorAll(".model-card:not(.video-model)").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+      selectedModel = card.dataset.model;
+      modelPill.textContent = MODEL_NAMES[selectedModel];
+    }
   }
 
   inputEl.addEventListener("input", () => {
@@ -505,6 +573,10 @@
 
   // ===== V2 SYSTEM: single call to the currently selected model, no retries/fallback =====
   async function askAI(userPrompt) {
+    if (selectedModel === "gemini-2.5-flash") {
+      return askGemini(userPrompt);
+    }
+
     const messages = [{ role: "system", content: SYSTEM_PROMPT }];
     for (const m of history) {
       messages.push({ role: m.role === "user" ? "user" : "assistant", content: m.content });
@@ -531,6 +603,38 @@
 
     const json = await res.json();
     let text = json?.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error("Empty response from model");
+    return text;
+  }
+
+  // Direct call to Google's Gemini API (not routed through Groq)
+  async function askGemini(userPrompt) {
+    const contents = [];
+    for (const m of history) {
+      contents.push({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.content }] });
+    }
+    contents.push({ role: "user", parts: [{ text: userPrompt }] });
+
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiKey,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: contents
+        })
+      }
+    );
+
+    if (!res.ok) {
+      let detail = "";
+      try { detail = (await res.json())?.error?.message || ""; } catch (e) { /* ignore */ }
+      throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
+    }
+
+    const json = await res.json();
+    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!text) throw new Error("Empty response from model");
     return text;
   }
@@ -611,7 +715,7 @@
 
     try {
       const url = "https://gen.pollinations.ai/video/" + encodeURIComponent(userPrompt) +
-        "?model=wan-fast&width=768&height=768&duration=4";
+        "?model=" + encodeURIComponent(selectedVideoModel) + "&width=768&height=768&duration=4";
       const res = await fetch(url, {
         headers: { "Authorization": "Bearer " + pollinationsKey }
       });
