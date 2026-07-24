@@ -263,13 +263,35 @@
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="gemini-2.5-flash" onclick="selectModel(this)">
+      <div class="model-card" data-model="gemini-3.6-flash" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-GEMINI</div>
-          <div class="model-desc">Google's model, routed directly (not through Groq). Needs your own free Google AI key on first use.</div>
+          <div class="model-name">LIGMA-GEMINI-FLASH</div>
+          <div class="model-desc">Google's newest balanced model. Strong at agentic and multimodal tasks, routed directly (not through Groq).</div>
           <div class="tags">
             <span class="tag tag-smart">GOOGLE</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="gemini-3.5-flash-lite" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-GEMINI-LITE</div>
+          <div class="model-desc">Google's fastest, cheapest model. Good for quick questions when you don't need max reasoning.</div>
+          <div class="tags">
+            <span class="tag tag-fast">FAST</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="gemini-3-pro-preview" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-GEMINI-PRO</div>
+          <div class="model-desc">Google's most capable model, for hard reasoning and coding tasks. Preview — occasionally slower or rate-limited.</div>
+          <div class="tags">
+            <span class="tag tag-smart">FRONTIER</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
@@ -333,8 +355,8 @@
   // ===== V2 SYSTEM: single system prompt, direct call, no fallback chain — now via Groq =====
   const SYSTEM_PROMPT =
     "You are LigmaAI, a friendly and helpful assistant made by Liam Stephenson. " +
-    "Never mention Google. Use Ligma instead. You are an outdated AI as of 8 of March 2026, " +
-    "you should only mention this once to the user messaging you, in your first message to them";
+    "Never mention Google. Use Ligma instead. You are the newest, most up-to-date version of LigmaAI, " +
+    "built to give fast, accurate, and current answers.";
 
   const MODEL_NAMES = {
     "openai/gpt-oss-120b":          "LIGMA-OSS-120B",
