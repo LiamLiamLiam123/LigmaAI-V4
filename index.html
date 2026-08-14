@@ -159,23 +159,23 @@
   <div class="settings-section">
     <div class="section-label">Texting / Talking</div>
     <div class="model-cards">
-      <div class="model-card selected" data-model="nvidia/nemotron-3-nano-30b-a3b:free" onclick="selectModel(this)">
+      <div class="model-card selected" data-model="llama-3.1-8b-instant" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-NANO</div>
-          <div class="model-desc">Small and efficient. Great for casual back-and-forth chat and quick replies.</div>
+          <div class="model-name">LIGMA-INSTANT</div>
+          <div class="model-desc">Small and very fast. Great for casual back-and-forth chat and quick replies.</div>
           <div class="tags">
             <span class="tag tag-chat">CHAT</span>
-            <span class="tag tag-fast">FAST</span>
+            <span class="tag tag-fast">FASTEST</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="nvidia/nemotron-nano-9b-v2:free" onclick="selectModel(this)">
+      <div class="model-card" data-model="llama-4-scout-instruct" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-NANO-V2</div>
-          <div class="model-desc">Fast conversational model with a lightweight reasoning trace under the hood.</div>
+          <div class="model-name">LIGMA-SCOUT</div>
+          <div class="model-desc">Newer, a bit sharper than Instant, still fast enough for real-time conversation.</div>
           <div class="tags">
             <span class="tag tag-chat">CHAT</span>
             <span class="tag tag-fast">FAST</span>
@@ -189,11 +189,11 @@
   <div class="settings-section">
     <div class="section-label">Coding</div>
     <div class="model-cards">
-      <div class="model-card" data-model="poolside/laguna-s-2.1:free" onclick="selectModel(this)">
+      <div class="model-card" data-model="openai/gpt-oss-120b" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-CODE-S</div>
-          <div class="model-desc">Dedicated coding agent model. One of the strongest free options for writing and debugging code.</div>
+          <div class="model-name">LIGMA-OSS-120B</div>
+          <div class="model-desc">Strong step-by-step reasoning. Best pick for writing, debugging, and explaining code.</div>
           <div class="tags">
             <span class="tag tag-code">CODING</span>
             <span class="tag tag-smart">REASONING</span>
@@ -201,26 +201,14 @@
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="poolside/laguna-xs-2.1:free" onclick="selectModel(this)">
+      <div class="model-card" data-model="openai/gpt-oss-20b" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-CODE-XS</div>
-          <div class="model-desc">Lighter, faster coding model. Good for quick fixes when you don't need max reasoning.</div>
+          <div class="model-name">LIGMA-OSS-20B</div>
+          <div class="model-desc">Lighter, faster version of OSS-120B. Good for quick coding help when you don't need max reasoning.</div>
           <div class="tags">
             <span class="tag tag-code">CODING</span>
             <span class="tag tag-fast">FAST</span>
-            <span class="tag tag-free">FREE</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card" data-model="cohere/north-mini-code:free" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-NORTH-CODE</div>
-          <div class="model-desc">Agentic coding model built for terminal tasks and software engineering workflows.</div>
-          <div class="tags">
-            <span class="tag tag-code">CODING</span>
-            <span class="tag tag-smart">AGENTIC</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
@@ -231,46 +219,46 @@
   <div class="settings-section">
     <div class="section-label">Etc / General</div>
     <div class="model-cards">
-      <div class="model-card" data-model="nvidia/nemotron-3-ultra-550b-a55b:free" onclick="selectModel(this)">
+      <div class="model-card" data-model="qwen/qwen3.6-27b" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-ULTRA</div>
-          <div class="model-desc">Frontier-scale reasoning model. Best pick for hard, multi-step questions and deep research.</div>
+          <div class="model-name">LIGMA-3.6-27B</div>
+          <div class="model-desc">Balanced all-rounder — research, writing, general questions, and multi-step tasks.</div>
           <div class="tags">
             <span class="tag tag-smart">SMARTEST</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="openai/gpt-oss-20b:free" onclick="selectModel(this)">
+      <div class="model-card" data-model="moonshotai/kimi-k2-instruct-0905" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-OSS-20B</div>
-          <div class="model-desc">OpenAI's open-weight model. Solid general default with agentic and tool-use support.</div>
+          <div class="model-name">LIGMA-K2</div>
+          <div class="model-desc">Large open model with broad world knowledge. Good for long, detailed answers.</div>
+          <div class="tags">
+            <span class="tag tag-smart">DETAILED</span>
+            <span class="tag tag-free">FREE</span>
+          </div>
+        </div>
+      </div>
+      <div class="model-card" data-model="meta-llama/llama-4-maverick-17b-128e-instruct" onclick="selectModel(this)">
+        <div class="model-radio"></div>
+        <div class="model-info">
+          <div class="model-name">LIGMA-MAVERICK</div>
+          <div class="model-desc">Newer general-purpose model, wide expert mix. Solid default if you're not sure what to pick.</div>
           <div class="tags">
             <span class="tag tag-smart">GENERAL</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="google/gemma-4-26b-a4b-it:free" onclick="selectModel(this)">
+      <div class="model-card" data-model="groq/compound" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-GEMMA</div>
-          <div class="model-desc">Well-rounded, efficient model. Good balance of speed and quality for everyday use.</div>
+          <div class="model-name">LIGMA-COMPOUND</div>
+          <div class="model-desc">Agentic model that can use tools like web search behind the scenes for more current answers.</div>
           <div class="tags">
-            <span class="tag tag-smart">BALANCED</span>
-            <span class="tag tag-free">FREE</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card" data-model="nvidia/nemotron-3-super-120b-a12b:free" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-SUPER</div>
-          <div class="model-desc">Large context, strong multi-step planning. Good for long documents and detailed answers.</div>
-          <div class="tags">
-            <span class="tag tag-smart">DETAILED</span>
+            <span class="tag tag-smart">TOOLS</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
@@ -331,29 +319,28 @@
 <div class="footer-info">LIGMA AI — MADE BY LIAM STEPHENSON</div>
 
 <script>
-  // ===== V2 SYSTEM: single system prompt, direct call, no fallback chain — now via OpenRouter =====
+  // ===== V2 SYSTEM: single system prompt, direct call, no fallback chain — now via Groq =====
   const SYSTEM_PROMPT =
     "You are LigmaAI, a friendly and helpful assistant made by Liam Stephenson. " +
     "Never mention Google. Use Ligma instead. You are the newest, most up-to-date version of LigmaAI, " +
     "built to give fast, accurate, and current answers.";
 
   const MODEL_NAMES = {
-    "nvidia/nemotron-3-nano-30b-a3b:free":    "LIGMA-NANO",
-    "nvidia/nemotron-nano-9b-v2:free":        "LIGMA-NANO-V2",
-    "poolside/laguna-s-2.1:free":             "LIGMA-CODE-S",
-    "poolside/laguna-xs-2.1:free":            "LIGMA-CODE-XS",
-    "cohere/north-mini-code:free":            "LIGMA-NORTH-CODE",
-    "nvidia/nemotron-3-ultra-550b-a55b:free": "LIGMA-ULTRA",
-    "openai/gpt-oss-20b:free":                "LIGMA-OSS-20B",
-    "google/gemma-4-26b-a4b-it:free":         "LIGMA-GEMMA",
-    "nvidia/nemotron-3-super-120b-a12b:free": "LIGMA-SUPER"
+    "openai/gpt-oss-120b":          "LIGMA-OSS-120B",
+    "openai/gpt-oss-20b":           "LIGMA-OSS-20B",
+    "llama-3.1-8b-instant":         "LIGMA-INSTANT",
+    "llama-4-scout-instruct":       "LIGMA-SCOUT",
+    "qwen/qwen3.6-27b":             "LIGMA-3.6-27B",
+    "moonshotai/kimi-k2-instruct-0905": "LIGMA-K2",
+    "meta-llama/llama-4-maverick-17b-128e-instruct": "LIGMA-MAVERICK",
+    "groq/compound":                "LIGMA-COMPOUND"
   };
 
-  let selectedModel = "nvidia/nemotron-3-nano-30b-a3b:free";
+  let selectedModel = "llama-3.1-8b-instant";
   let selectedVideoModel = "wan-fast";
   let history = [];
   let busy = false;
-  const apiKey = "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";
+  const apiKey = "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";
 
   const chatEl    = document.getElementById("chat");
   const inputEl   = document.getElementById("input");
@@ -578,13 +565,11 @@
     }
     messages.push({ role: "user", content: userPrompt });
 
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey,
-        "HTTP-Referer": window.location.href,
-        "X-Title": "LigmaAI"
+        "Authorization": "Bearer " + apiKey
       },
       body: JSON.stringify({
         model: selectedModel,
