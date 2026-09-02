@@ -159,7 +159,7 @@
   <div class="settings-section">
     <div class="section-label">Texting / Talking</div>
     <div class="model-cards">
-      <div class="model-card selected" data-model="llama-3.1-8b-instant" onclick="selectModel(this)">
+      <div class="model-card selected" data-model="groq/compound-mini" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
           <div class="model-name">LIGMA-INSTANT</div>
@@ -171,7 +171,7 @@
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="llama-4-scout-instruct" onclick="selectModel(this)">
+      <div class="model-card" data-model="openai/gpt-oss-20b" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
           <div class="model-name">LIGMA-SCOUT</div>
@@ -201,11 +201,11 @@
           </div>
         </div>
       </div>
-      <div class="model-card" data-model="openai/gpt-oss-20b" onclick="selectModel(this)">
+      <div class="model-card" data-model="qwen/qwen3.8-27b" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-OSS-20B</div>
-          <div class="model-desc">Lighter, faster version of OSS-120B. Good for quick coding help when you don't need max reasoning.</div>
+          <div class="model-name">LIGMA-QWEN-3.8</div>
+          <div class="model-desc">Lighter, faster reasoning model. Good for quick coding help when you don't need max reasoning.</div>
           <div class="tags">
             <span class="tag tag-code">CODING</span>
             <span class="tag tag-fast">FAST</span>
@@ -226,28 +226,6 @@
           <div class="model-desc">Balanced all-rounder — research, writing, general questions, and multi-step tasks.</div>
           <div class="tags">
             <span class="tag tag-smart">SMARTEST</span>
-            <span class="tag tag-free">FREE</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card" data-model="moonshotai/kimi-k2-instruct-0905" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-K2</div>
-          <div class="model-desc">Large open model with broad world knowledge. Good for long, detailed answers.</div>
-          <div class="tags">
-            <span class="tag tag-smart">DETAILED</span>
-            <span class="tag tag-free">FREE</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card" data-model="meta-llama/llama-4-maverick-17b-128e-instruct" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-MAVERICK</div>
-          <div class="model-desc">Newer general-purpose model, wide expert mix. Solid default if you're not sure what to pick.</div>
-          <div class="tags">
-            <span class="tag tag-smart">GENERAL</span>
             <span class="tag tag-free">FREE</span>
           </div>
         </div>
@@ -325,18 +303,20 @@
     "Never mention Google. Use Ligma instead. You are the newest, most up-to-date version of LigmaAI, " +
     "built to give fast, accurate, and current answers.";
 
+  // Model IDs verified against Groq's current /docs/models list (console.groq.com/docs/models).
+  // llama-3.1-8b-instant / llama-3.3-70b-versatile are now Enterprise/contact-sales only, not usable with a normal key.
+  // llama-4-scout, llama-4-maverick, and kimi-k2-instruct-0905 have been removed from Groq's lineup entirely — that's
+  // why those cards were failing with "model not found" errors. Swapped them for models Groq currently serves.
   const MODEL_NAMES = {
-    "openai/gpt-oss-120b":          "LIGMA-OSS-120B",
-    "openai/gpt-oss-20b":           "LIGMA-OSS-20B",
-    "llama-3.1-8b-instant":         "LIGMA-INSTANT",
-    "llama-4-scout-instruct":       "LIGMA-SCOUT",
-    "qwen/qwen3.6-27b":             "LIGMA-3.6-27B",
-    "moonshotai/kimi-k2-instruct-0905": "LIGMA-K2",
-    "meta-llama/llama-4-maverick-17b-128e-instruct": "LIGMA-MAVERICK",
-    "groq/compound":                "LIGMA-COMPOUND"
+    "openai/gpt-oss-120b":  "LIGMA-OSS-120B",
+    "openai/gpt-oss-20b":   "LIGMA-SCOUT",
+    "qwen/qwen3.6-27b":     "LIGMA-3.6-27B",
+    "qwen/qwen3.8-27b":     "LIGMA-QWEN-3.8",
+    "groq/compound":        "LIGMA-COMPOUND",
+    "groq/compound-mini":   "LIGMA-INSTANT"
   };
 
-  let selectedModel = "llama-3.1-8b-instant";
+  let selectedModel = "groq/compound-mini";
   let selectedVideoModel = "wan-fast";
   let history = [];
   let busy = false;
