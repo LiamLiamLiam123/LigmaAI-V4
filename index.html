@@ -323,23 +323,23 @@
 
   <div class="settings-section">
     <div class="section-label">Video</div>
-    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY FAL.AI / KLING</div>
+    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY APIFRAME / KLING 3.0</div>
     <div class="model-cards">
       <div class="model-card video-model selected" data-model="standard" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
           <div class="model-name">KLING-STANDARD</div>
-          <div class="model-desc">Real AI-generated motion video from your prompt. Cheaper and faster than Master, still solid motion quality.</div>
+          <div class="model-desc">Real AI-generated motion video from your prompt at 720p. Cheaper and faster than Pro.</div>
           <div class="tags">
             <span class="tag tag-fast">CHEAPER</span>
           </div>
         </div>
       </div>
-      <div class="model-card video-model" data-model="master" onclick="selectModel(this)">
+      <div class="model-card video-model" data-model="pro" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">KLING-MASTER</div>
-          <div class="model-desc">Higher-fidelity motion and detail than Standard. Costs more per clip and takes longer to render.</div>
+          <div class="model-name">KLING-PRO</div>
+          <div class="model-desc">Higher-fidelity 1080p render with better motion detail. Costs more per clip and takes longer.</div>
           <div class="tags">
             <span class="tag tag-smart">QUALITY</span>
           </div>
@@ -403,10 +403,10 @@
   const videoBtn  = document.getElementById("videoBtn");
   const modelPill = document.getElementById("modelPill");
 
-  // fal.ai blocks direct browser calls with your key attached (same CORS story as
-  // before), so this points at a proxy worker — see fal-video-proxy-worker.js for
-  // what to deploy. Replace this with your own worker's URL once deployed.
-  const FAL_VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
+  // Apiframe blocks direct browser calls with your key attached (same CORS story
+  // as before), so this points at a proxy worker — see apiframe-video-proxy-worker.js
+  // for what to deploy. Replace this with your own worker's URL once deployed.
+  const APIFRAME_VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -704,12 +704,11 @@
     addImageMessage(text);
   });
 
-  // ===== Video generation via fal.ai / Kling =====
+  // ===== Video generation via Apiframe / Kling 3.0 =====
   // Real text-to-video generation, not a composited image+voiceover. Flow:
-  // 1. POST to the proxy -> submits to fal.ai's queue, returns a request_id.
-  // 2. Poll GET proxy?request_id=... -> the worker checks status, and once
-  //    COMPLETED also fetches the result in the same round trip.
-  // 3. result.video.url is the finished MP4.
+  // 1. POST to the proxy -> submits to Apiframe's Kling endpoint, returns a jobId.
+  // 2. Poll GET proxy?jobId=... every 5s -> the worker forwards Apiframe's job status.
+  // 3. Once status is COMPLETED, the video URL comes back in result.videoUrl.
   async function addVideoMessage(userPrompt) {
     removeWelcome();
     const wrap = document.createElement("div");
@@ -719,7 +718,7 @@
     lbl.textContent = "LIGMA AI";
     const msg = document.createElement("div");
     msg.className = "msg bot thinking";
-    msg.innerHTML = 'Generating video, this can take a minute or two...<span class="cursor"></span>';
+    msg.innerHTML = 'Generating video, this can take a couple minutes...<span class="cursor"></span>';
     wrap.appendChild(lbl);
     wrap.appendChild(msg);
     chatEl.appendChild(wrap);
@@ -727,13 +726,13 @@
 
     try {
       const payload = {
-        model: selectedVideoModel, // "standard" or "master" — the worker maps this to the right Kling endpoint
         prompt: userPrompt,
-        duration: "5",
+        qualityMode: selectedVideoModel, // "standard" (720p) or "pro" (1080p)
+        duration: 5,
         aspect_ratio: "16:9"
       };
 
-      const createRes = await fetch(FAL_VIDEO_PROXY, {
+      const createRes = await fetch(APIFRAME_VIDEO_PROXY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -741,32 +740,30 @@
 
       if (!createRes.ok) {
         let detail = "";
-        try { detail = (await createRes.json())?.detail || ""; } catch (e) { /* ignore */ }
+        try { detail = (await createRes.json())?.message || (await createRes.json())?.error || ""; } catch (e) { /* ignore */ }
         throw new Error("HTTP " + createRes.status + (detail ? " — " + detail : ""));
       }
 
       const createJson = await createRes.json();
-      const requestId = createJson.request_id;
-      if (!requestId) throw new Error("fal.ai didn't return a request id");
+      const jobId = createJson.jobId || createJson.job_id;
+      if (!jobId) throw new Error("Apiframe didn't return a job id");
 
       let videoUrl = null;
-      for (let attempt = 0; attempt < 60; attempt++) {
+      for (let attempt = 0; attempt < 90; attempt++) {
         await new Promise(r => setTimeout(r, 5000));
-        const statusRes = await fetch(
-          FAL_VIDEO_PROXY + "?request_id=" + encodeURIComponent(requestId) + "&model=" + encodeURIComponent(selectedVideoModel)
-        );
+        const statusRes = await fetch(APIFRAME_VIDEO_PROXY + "?jobId=" + encodeURIComponent(jobId));
         if (!statusRes.ok) continue;
         const statusJson = await statusRes.json();
-        console.log("fal.ai status response:", statusJson);
+        console.log("Apiframe status response:", statusJson);
 
-        const status = statusJson.status;
-        if (status === "COMPLETED") {
-          videoUrl = statusJson.result?.video?.url;
+        const status = (statusJson.status || "").toUpperCase();
+        if (status === "COMPLETED" || status === "SUCCESS") {
+          videoUrl = statusJson.result?.videoUrl || statusJson.videoUrl || statusJson.result?.video_url;
           if (!videoUrl) throw new Error("Render completed but no video URL came back — check the console");
           break;
         }
-        if (status === "ERROR" || status === "FAILED") {
-          throw new Error(statusJson.error || "Render failed");
+        if (status === "FAILED" || status === "ERROR") {
+          throw new Error(statusJson.error || statusJson.message || "Render failed");
         }
         msg.innerHTML = 'Generating video... (' + (status || "processing").toLowerCase() + ')<span class="cursor"></span>';
       }
