@@ -322,45 +322,26 @@
 
   <div class="settings-section">
     <div class="section-label">Video</div>
+    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY JSON2VIDEO</div>
     <div class="model-cards">
-      <div class="model-card video-model selected" data-model="wan-fast" onclick="selectModel(this)">
+      <div class="model-card video-model selected" data-model="draft" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-VID-FAST</div>
-          <div class="model-desc">Quickest render, lowest Pollen cost. Best default for trying prompts out.</div>
+          <div class="model-name">JSON2VIDEO-DRAFT</div>
+          <div class="model-desc">Fast low-quality render with a watermark. Good for testing a prompt before spending full render time.</div>
           <div class="tags">
             <span class="tag tag-fast">FAST</span>
             <span class="tag tag-free">CHEAP</span>
           </div>
         </div>
       </div>
-      <div class="model-card video-model" data-model="seedance-pro" onclick="selectModel(this)">
+      <div class="model-card video-model" data-model="final" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">LIGMA-VID-PRO</div>
-          <div class="model-desc">Sharper motion and detail than Fast. Costs a bit more Pollen per clip.</div>
+          <div class="model-name">JSON2VIDEO-FINAL</div>
+          <div class="model-desc">Full high-quality render, no watermark. Takes longer and uses more of the render quota.</div>
           <div class="tags">
             <span class="tag tag-smart">QUALITY</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card video-model" data-model="veo" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-VID-VEO</div>
-          <div class="model-desc">Google's video model. Strong realism, best for lifelike scenes.</div>
-          <div class="tags">
-            <span class="tag tag-smart">REALISTIC</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card video-model" data-model="seedance-2.0-fast" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-VID-FAST2</div>
-          <div class="model-desc">Lightweight and fast, good for quick stylized or abstract clips.</div>
-          <div class="tags">
-            <span class="tag tag-fast">FAST</span>
           </div>
         </div>
       </div>
@@ -410,7 +391,7 @@
   };
 
   let selectedModel = "groq/compound-mini";
-  let selectedVideoModel = "wan-fast";
+  let selectedVideoModel = "draft";
   let history = [];
   let busy = false;
   const apiKey = "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";
@@ -422,7 +403,10 @@
   const videoBtn  = document.getElementById("videoBtn");
   const modelPill = document.getElementById("modelPill");
 
-  const pollinationsKey = "sk_KkL8Ymltg4Aqsj19dbEfNDKKKcRCJTEv";
+  // JSON2Video blocks direct browser calls (no CORS headers), so this points at a
+  // small proxy worker instead — see json2video-proxy-worker.js for what to deploy.
+  // Replace this with your own worker's URL after deploying it (step 5 in that file).
+  const JSON2VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -720,7 +704,12 @@
     addImageMessage(text);
   });
 
-  // ===== Video generation via Pollinations (needs a free key, unlike images) =====
+  // ===== Video generation via JSON2Video =====
+  // JSON2Video composes a movie from a JSON spec rather than generating raw video from
+  // a prompt itself, so each request builds a one-scene movie: an AI background image
+  // (from Pollinations, keyed off the same prompt) with a Ken Burns zoom, an AI voiceover
+  // reading the prompt, and auto-generated subtitles. We POST /v2/movies, then poll
+  // GET /v2/movies?project=ID until the render finishes.
   async function addVideoMessage(userPrompt) {
     removeWelcome();
     const wrap = document.createElement("div");
@@ -730,30 +719,73 @@
     lbl.textContent = "LIGMA AI";
     const msg = document.createElement("div");
     msg.className = "msg bot thinking";
-    msg.innerHTML = 'Generating video, this can take a bit...<span class="cursor"></span>';
+    msg.innerHTML = 'Rendering video, this can take a minute or two...<span class="cursor"></span>';
     wrap.appendChild(lbl);
     wrap.appendChild(msg);
     chatEl.appendChild(wrap);
     chatEl.scrollTop = chatEl.scrollHeight;
 
     try {
-      const url = "https://gen.pollinations.ai/video/" + encodeURIComponent(userPrompt) +
-        "?model=" + encodeURIComponent(selectedVideoModel) + "&width=768&height=768&duration=4";
-      const res = await fetch(url, {
-        headers: { "Authorization": "Bearer " + pollinationsKey }
+      const seed = Math.floor(Math.random() * 999999);
+      const bgImageUrl = "https://image.pollinations.ai/prompt/" + encodeURIComponent(userPrompt) +
+        "?width=1024&height=1024&seed=" + seed + "&nologo=true";
+      const isDraft = selectedVideoModel === "draft";
+
+      const moviePayload = {
+        resolution: "squared",
+        quality: isDraft ? "low" : "high",
+        draft: isDraft,
+        scenes: [
+          {
+            duration: -1,
+            "background-color": "#000000",
+            elements: [
+              { type: "image", src: bgImageUrl, duration: "container", zoom: 2 },
+              { type: "voice", text: userPrompt, voice: "en-US-JennyNeural", provider: "azure" },
+              { type: "subtitles" }
+            ]
+          }
+        ]
+      };
+
+      const createRes = await fetch(JSON2VIDEO_PROXY, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(moviePayload)
       });
-      if (!res.ok) {
+
+      if (!createRes.ok) {
         let detail = "";
-        try { detail = (await res.json())?.error?.message || ""; } catch (e) { /* ignore */ }
-        throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
+        try { detail = (await createRes.json())?.message || ""; } catch (e) { /* ignore */ }
+        throw new Error("HTTP " + createRes.status + (detail ? " — " + detail : ""));
       }
-      const blob = await res.blob();
-      const videoUrl = URL.createObjectURL(blob);
+
+      const createJson = await createRes.json();
+      const projectId = createJson.project;
+      if (!projectId) throw new Error("JSON2Video didn't return a project id");
+
+      let movie = null;
+      for (let attempt = 0; attempt < 60; attempt++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const statusRes = await fetch(
+          JSON2VIDEO_PROXY + "?project=" + encodeURIComponent(projectId)
+        );
+        if (!statusRes.ok) continue;
+        const statusJson = await statusRes.json();
+        const m = statusJson.movie;
+        if (!m) continue;
+        if (m.status === "done") { movie = m; break; }
+        if (m.status === "error") throw new Error(m.message || "Render failed");
+        msg.innerHTML = 'Rendering video... (' + m.status + ')<span class="cursor"></span>';
+      }
+      if (!movie) throw new Error("Timed out waiting for the render to finish");
 
       msg.classList.remove("thinking");
       msg.innerHTML = "";
       const videoEl = document.createElement("video");
-      videoEl.src = videoUrl;
+      videoEl.src = movie.url;
       videoEl.controls = true;
       videoEl.autoplay = false;
       msg.appendChild(videoEl);
