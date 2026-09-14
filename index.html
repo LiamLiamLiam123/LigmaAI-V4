@@ -355,13 +355,13 @@
 
   <div class="settings-section">
     <div class="section-label">Music</div>
-    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY ELEVENLABS MUSIC</div>
+    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY AIMUSICAPI.ORG (FREE TIER, UNVERIFIED)</div>
     <div class="model-cards">
       <div class="model-card music-model selected" data-model="vocal" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
           <div class="model-name">LIGMA-MUSIC-VOCAL</div>
-          <div class="model-desc">Full song with vocals, structure and instrumentation, built from your prompt.</div>
+          <div class="model-desc">Full song with vocals, generated from your prompt.</div>
           <div class="tags">
             <span class="tag tag-smart">FULL SONG</span>
           </div>
@@ -437,12 +437,12 @@
   const musicBtn  = document.getElementById("musicBtn");
   const modelPill = document.getElementById("modelPill");
 
-  // JSON2Video and ElevenLabs Music both block direct browser calls (no CORS headers)
+  // JSON2Video and aimusicapi.org both block direct browser calls (no CORS headers)
   // and both need their key kept off the client, so each goes through its own tiny
-  // proxy worker. See json2video-proxy-worker.js and elevenlabs-music-proxy-worker.js
+  // proxy worker. See json2video-proxy-worker.js and aimusicapi-proxy-worker.js
   // for what to deploy — replace these with your own worker URLs once deployed.
   const JSON2VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
-  const ELEVENLABS_MUSIC_PROXY = "https://patient-grass-155c.daddystephenson34.workers.dev/";
+  const AIMUSICAPI_PROXY = "https://YOUR-MUSIC-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -859,11 +859,14 @@
     addVideoMessage(text);
   });
 
-  // ===== Music generation via ElevenLabs Music =====
-  // ElevenLabs' /v1/music endpoint is synchronous — one POST returns the finished
-  // MP3 directly, no polling needed. Like JSON2Video, it blocks direct browser calls
-  // and needs its key kept server-side, so this goes through its own proxy worker.
-  // See elevenlabs-music-proxy-worker.js for what to deploy.
+  // ===== Music generation via aimusicapi.org =====
+  // Unlike ElevenLabs, this is async: POST /v2/generate returns a workId, then we
+  // poll GET /query?workId=... until a track URL shows up. NOTE: aimusicapi.org's
+  // public docs don't fully spell out the shape of the poll response, so the field
+  // names checked below (status/audio_url/etc.) are a best-effort guess based on
+  // similar aggregator APIs. If this errors out with "unexpected response format",
+  // open the browser console, look at the raw JSON logged there, and tell me what
+  // the actual field names are so I can fix the parsing.
   async function addMusicMessage(prompt) {
     removeWelcome();
     const wrap = document.createElement("div");
@@ -881,27 +884,46 @@
 
     try {
       const payload = {
-        prompt: prompt,
-        music_length_ms: 30000,
-        model_id: "music_v1",
-        force_instrumental: selectedMusicMode === "instrumental"
+        gpt_description_prompt: prompt,
+        make_instrumental: selectedMusicMode === "instrumental"
       };
 
-      const res = await fetch(ELEVENLABS_MUSIC_PROXY, {
+      const createRes = await fetch(AIMUSICAPI_PROXY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
+      if (!createRes.ok) {
         let detail = "";
-        try { detail = (await res.clone().json())?.detail?.message; } catch (e) { /* not json */ }
-        if (!detail) { try { detail = await res.text(); } catch (e) { /* ignore */ } }
-        throw new Error("HTTP " + res.status + (detail ? " — " + detail : ""));
+        try { detail = (await createRes.json())?.message || ""; } catch (e) { /* ignore */ }
+        throw new Error("HTTP " + createRes.status + (detail ? " — " + detail : ""));
       }
 
-      const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
+      const createJson = await createRes.json();
+      const workId = createJson.workId || createJson?.data?.task_id;
+      if (!workId) throw new Error("aimusicapi.org didn't return a task id");
+
+      let audioUrl = null;
+      for (let attempt = 0; attempt < 40; attempt++) {
+        await new Promise(r => setTimeout(r, 6000));
+        const statusRes = await fetch(AIMUSICAPI_PROXY + "?workId=" + encodeURIComponent(workId));
+        if (!statusRes.ok) continue;
+        const statusJson = await statusRes.json();
+        console.log("aimusicapi status response:", statusJson);
+
+        const d = statusJson.data || statusJson;
+        const status = (d.status || d.state || "").toString().toLowerCase();
+        const track = Array.isArray(d.items) ? d.items[0] : (Array.isArray(d) ? d[0] : d);
+        const url = track?.audio_url || track?.audioUrl || d.audio_url || d.audioUrl;
+
+        if (url) { audioUrl = url; break; }
+        if (status.includes("fail") || status.includes("error")) {
+          throw new Error(d.message || d.msg || "Generation failed");
+        }
+        msg.innerHTML = 'Composing music... (' + (status || "processing") + ')<span class="cursor"></span>';
+      }
+      if (!audioUrl) throw new Error("Timed out, or the response format didn't match what we expected — check the console");
 
       msg.classList.remove("thinking");
       msg.innerHTML = "";
