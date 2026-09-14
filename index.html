@@ -114,9 +114,6 @@
     #videoBtn { padding:11px 14px; background:var(--bg2); border:1px solid var(--border2); border-radius:8px; color:var(--green-muted); font-size:15px; cursor:pointer; transition:all 0.2s; align-self:flex-end; }
     #videoBtn:hover:not(:disabled) { background:#123012; border-color:var(--green-dim); color:var(--green); }
     #videoBtn:disabled { opacity:0.4; cursor:not-allowed; }
-    #musicBtn { padding:11px 14px; background:var(--bg2); border:1px solid var(--border2); border-radius:8px; color:var(--green-muted); font-size:15px; cursor:pointer; transition:all 0.2s; align-self:flex-end; }
-    #musicBtn:hover:not(:disabled) { background:#123012; border-color:var(--green-dim); color:var(--green); }
-    #musicBtn:disabled { opacity:0.4; cursor:not-allowed; }
     .msg img { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
     .msg video { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
     .msg audio { width:100%; margin-top:2px; }
@@ -217,14 +214,13 @@
   <div id="chat">
     <div class="welcome">
       <h2>// LIGMA AI V4 //</h2>
-      <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.<br><br>⚙ Open settings to pick a model for the job.<br>🖼 Generate an image from your prompt I AM NOT RESPONSIBLE FOR YOUR IMAGES<br>🎬 Generate a short video from your prompt.<br>🎵 Generate a song from your prompt.</p>
+      <p>Friendly. Helpful. Free.<br>Made by Liam Stephenson.<br><br>⚙ Open settings to pick a model for the job.<br>🖼 Generate an image from your prompt I AM NOT RESPONSIBLE FOR YOUR IMAGES<br>🎬 Generate a short video from your prompt.</p>
     </div>
   </div>
   <div id="inputBox">
     <textarea id="input" rows="1" placeholder="Send a message…"></textarea>
     <button id="imageBtn" title="Generate an image from this prompt">🖼</button>
     <button id="videoBtn" title="Generate a video from this prompt">🎬</button>
-    <button id="musicBtn" title="Generate a song from this prompt">🎵</button>
     <button id="send">SEND ⏎</button>
   </div>
 </div>
@@ -327,53 +323,25 @@
 
   <div class="settings-section">
     <div class="section-label">Video</div>
-    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY JSON2VIDEO</div>
+    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY FAL.AI / KLING</div>
     <div class="model-cards">
-      <div class="model-card video-model selected" data-model="draft" onclick="selectModel(this)">
+      <div class="model-card video-model selected" data-model="standard" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">JSON2VIDEO-DRAFT</div>
-          <div class="model-desc">Fast low-quality render with a watermark. Good for testing a prompt before spending full render time.</div>
+          <div class="model-name">KLING-STANDARD</div>
+          <div class="model-desc">Real AI-generated motion video from your prompt. Cheaper and faster than Master, still solid motion quality.</div>
           <div class="tags">
-            <span class="tag tag-fast">FAST</span>
-            <span class="tag tag-free">CHEAP</span>
+            <span class="tag tag-fast">CHEAPER</span>
           </div>
         </div>
       </div>
-      <div class="model-card video-model" data-model="final" onclick="selectModel(this)">
+      <div class="model-card video-model" data-model="master" onclick="selectModel(this)">
         <div class="model-radio"></div>
         <div class="model-info">
-          <div class="model-name">JSON2VIDEO-FINAL</div>
-          <div class="model-desc">Full high-quality render, no watermark. Takes longer and uses more of the render quota.</div>
+          <div class="model-name">KLING-MASTER</div>
+          <div class="model-desc">Higher-fidelity motion and detail than Standard. Costs more per clip and takes longer to render.</div>
           <div class="tags">
             <span class="tag tag-smart">QUALITY</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="settings-section">
-    <div class="section-label">Music</div>
-    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY AIMUSICAPI.ORG (FREE TIER, UNVERIFIED)</div>
-    <div class="model-cards">
-      <div class="model-card music-model selected" data-model="vocal" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-MUSIC-VOCAL</div>
-          <div class="model-desc">Full song with vocals, generated from your prompt.</div>
-          <div class="tags">
-            <span class="tag tag-smart">FULL SONG</span>
-          </div>
-        </div>
-      </div>
-      <div class="model-card music-model" data-model="instrumental" onclick="selectModel(this)">
-        <div class="model-radio"></div>
-        <div class="model-info">
-          <div class="model-name">LIGMA-MUSIC-INSTRUMENTAL</div>
-          <div class="model-desc">Instrumental only, no vocals — good for backing tracks or ambience.</div>
-          <div class="tags">
-            <span class="tag tag-chat">NO VOCALS</span>
           </div>
         </div>
       </div>
@@ -423,8 +391,7 @@
   };
 
   let selectedModel = "groq/compound-mini";
-  let selectedVideoModel = "draft";
-  let selectedMusicMode = "vocal";
+  let selectedVideoModel = "standard";
   let history = [];
   let busy = false;
   const apiKey = "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";
@@ -434,15 +401,12 @@
   const sendBtn   = document.getElementById("send");
   const imageBtn  = document.getElementById("imageBtn");
   const videoBtn  = document.getElementById("videoBtn");
-  const musicBtn  = document.getElementById("musicBtn");
   const modelPill = document.getElementById("modelPill");
 
-  // JSON2Video and aimusicapi.org both block direct browser calls (no CORS headers)
-  // and both need their key kept off the client, so each goes through its own tiny
-  // proxy worker. See json2video-proxy-worker.js and aimusicapi-proxy-worker.js
-  // for what to deploy — replace these with your own worker URLs once deployed.
-  const JSON2VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
-  const AIMUSICAPI_PROXY = "https://YOUR-MUSIC-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+  // fal.ai blocks direct browser calls with your key attached (same CORS story as
+  // before), so this points at a proxy worker — see fal-video-proxy-worker.js for
+  // what to deploy. Replace this with your own worker's URL once deployed.
+  const FAL_VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -461,12 +425,8 @@
       document.querySelectorAll(".video-model").forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
       selectedVideoModel = card.dataset.model;
-    } else if (card.classList.contains("music-model")) {
-      document.querySelectorAll(".music-model").forEach(c => c.classList.remove("selected"));
-      card.classList.add("selected");
-      selectedMusicMode = card.dataset.model;
     } else {
-      document.querySelectorAll(".model-card:not(.video-model):not(.music-model)").forEach(c => c.classList.remove("selected"));
+      document.querySelectorAll(".model-card:not(.video-model)").forEach(c => c.classList.remove("selected"));
       card.classList.add("selected");
       selectedModel = card.dataset.model;
       modelPill.textContent = MODEL_NAMES[selectedModel];
@@ -719,7 +679,6 @@
       sendBtn.disabled = false;
       imageBtn.disabled = false;
       videoBtn.disabled = false;
-      musicBtn.disabled = false;
     };
     img.onerror = () => {
       msg.classList.remove("thinking");
@@ -728,7 +687,6 @@
       sendBtn.disabled = false;
       imageBtn.disabled = false;
       videoBtn.disabled = false;
-      musicBtn.disabled = false;
     };
     img.src = url;
   }
@@ -742,17 +700,16 @@
     sendBtn.disabled = true;
     imageBtn.disabled = true;
     videoBtn.disabled = true;
-    musicBtn.disabled = true;
     addMessage(text, "user");
     addImageMessage(text);
   });
 
-  // ===== Video generation via JSON2Video =====
-  // JSON2Video composes a movie from a JSON spec rather than generating raw video from
-  // a prompt itself, so each request builds a one-scene movie: an AI background image
-  // (from Pollinations, keyed off the same prompt) with a Ken Burns zoom, an AI voiceover
-  // reading the prompt, and auto-generated subtitles. We POST /v2/movies, then poll
-  // GET /v2/movies?project=ID until the render finishes.
+  // ===== Video generation via fal.ai / Kling =====
+  // Real text-to-video generation, not a composited image+voiceover. Flow:
+  // 1. POST to the proxy -> submits to fal.ai's queue, returns a request_id.
+  // 2. Poll GET proxy?request_id=... -> the worker checks status, and once
+  //    COMPLETED also fetches the result in the same round trip.
+  // 3. result.video.url is the finished MP4.
   async function addVideoMessage(userPrompt) {
     removeWelcome();
     const wrap = document.createElement("div");
@@ -762,73 +719,63 @@
     lbl.textContent = "LIGMA AI";
     const msg = document.createElement("div");
     msg.className = "msg bot thinking";
-    msg.innerHTML = 'Rendering video, this can take a minute or two...<span class="cursor"></span>';
+    msg.innerHTML = 'Generating video, this can take a minute or two...<span class="cursor"></span>';
     wrap.appendChild(lbl);
     wrap.appendChild(msg);
     chatEl.appendChild(wrap);
     chatEl.scrollTop = chatEl.scrollHeight;
 
     try {
-      const seed = Math.floor(Math.random() * 999999);
-      const bgImageUrl = "https://image.pollinations.ai/prompt/" + encodeURIComponent(userPrompt) +
-        "?width=1024&height=1024&seed=" + seed + "&nologo=true";
-      const isDraft = selectedVideoModel === "draft";
-
-      const moviePayload = {
-        resolution: "squared",
-        quality: isDraft ? "low" : "high",
-        draft: isDraft,
-        scenes: [
-          {
-            duration: -1,
-            "background-color": "#000000",
-            elements: [
-              { type: "image", src: bgImageUrl, duration: "container", zoom: 2 },
-              { type: "voice", text: userPrompt, voice: "en-US-JennyNeural", provider: "azure" },
-              { type: "subtitles" }
-            ]
-          }
-        ]
+      const payload = {
+        model: selectedVideoModel, // "standard" or "master" — the worker maps this to the right Kling endpoint
+        prompt: userPrompt,
+        duration: "5",
+        aspect_ratio: "16:9"
       };
 
-      const createRes = await fetch(JSON2VIDEO_PROXY, {
+      const createRes = await fetch(FAL_VIDEO_PROXY, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(moviePayload)
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
 
       if (!createRes.ok) {
         let detail = "";
-        try { detail = (await createRes.json())?.message || ""; } catch (e) { /* ignore */ }
+        try { detail = (await createRes.json())?.detail || ""; } catch (e) { /* ignore */ }
         throw new Error("HTTP " + createRes.status + (detail ? " — " + detail : ""));
       }
 
       const createJson = await createRes.json();
-      const projectId = createJson.project;
-      if (!projectId) throw new Error("JSON2Video didn't return a project id");
+      const requestId = createJson.request_id;
+      if (!requestId) throw new Error("fal.ai didn't return a request id");
 
-      let movie = null;
+      let videoUrl = null;
       for (let attempt = 0; attempt < 60; attempt++) {
         await new Promise(r => setTimeout(r, 5000));
         const statusRes = await fetch(
-          JSON2VIDEO_PROXY + "?project=" + encodeURIComponent(projectId)
+          FAL_VIDEO_PROXY + "?request_id=" + encodeURIComponent(requestId) + "&model=" + encodeURIComponent(selectedVideoModel)
         );
         if (!statusRes.ok) continue;
         const statusJson = await statusRes.json();
-        const m = statusJson.movie;
-        if (!m) continue;
-        if (m.status === "done") { movie = m; break; }
-        if (m.status === "error") throw new Error(m.message || "Render failed");
-        msg.innerHTML = 'Rendering video... (' + m.status + ')<span class="cursor"></span>';
+        console.log("fal.ai status response:", statusJson);
+
+        const status = statusJson.status;
+        if (status === "COMPLETED") {
+          videoUrl = statusJson.result?.video?.url;
+          if (!videoUrl) throw new Error("Render completed but no video URL came back — check the console");
+          break;
+        }
+        if (status === "ERROR" || status === "FAILED") {
+          throw new Error(statusJson.error || "Render failed");
+        }
+        msg.innerHTML = 'Generating video... (' + (status || "processing").toLowerCase() + ')<span class="cursor"></span>';
       }
-      if (!movie) throw new Error("Timed out waiting for the render to finish");
+      if (!videoUrl) throw new Error("Timed out waiting for the render to finish");
 
       msg.classList.remove("thinking");
       msg.innerHTML = "";
       const videoEl = document.createElement("video");
-      videoEl.src = movie.url;
+      videoEl.src = videoUrl;
       videoEl.controls = true;
       videoEl.autoplay = false;
       msg.appendChild(videoEl);
@@ -842,7 +789,6 @@
     sendBtn.disabled = false;
     imageBtn.disabled = false;
     videoBtn.disabled = false;
-    musicBtn.disabled = false;
   }
 
   videoBtn.addEventListener("click", () => {
@@ -854,108 +800,8 @@
     sendBtn.disabled = true;
     imageBtn.disabled = true;
     videoBtn.disabled = true;
-    musicBtn.disabled = true;
     addMessage(text, "user");
     addVideoMessage(text);
-  });
-
-  // ===== Music generation via aimusicapi.org =====
-  // Unlike ElevenLabs, this is async: POST /v2/generate returns a workId, then we
-  // poll GET /query?workId=... until a track URL shows up. NOTE: aimusicapi.org's
-  // public docs don't fully spell out the shape of the poll response, so the field
-  // names checked below (status/audio_url/etc.) are a best-effort guess based on
-  // similar aggregator APIs. If this errors out with "unexpected response format",
-  // open the browser console, look at the raw JSON logged there, and tell me what
-  // the actual field names are so I can fix the parsing.
-  async function addMusicMessage(prompt) {
-    removeWelcome();
-    const wrap = document.createElement("div");
-    wrap.className = "msg-wrapper bot";
-    const lbl = document.createElement("div");
-    lbl.className = "msg-label";
-    lbl.textContent = "LIGMA AI";
-    const msg = document.createElement("div");
-    msg.className = "msg bot thinking";
-    msg.innerHTML = 'Composing music, this can take a moment...<span class="cursor"></span>';
-    wrap.appendChild(lbl);
-    wrap.appendChild(msg);
-    chatEl.appendChild(wrap);
-    chatEl.scrollTop = chatEl.scrollHeight;
-
-    try {
-      const payload = {
-        gpt_description_prompt: prompt,
-        make_instrumental: selectedMusicMode === "instrumental"
-      };
-
-      const createRes = await fetch(AIMUSICAPI_PROXY, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!createRes.ok) {
-        let detail = "";
-        try { detail = (await createRes.json())?.message || ""; } catch (e) { /* ignore */ }
-        throw new Error("HTTP " + createRes.status + (detail ? " — " + detail : ""));
-      }
-
-      const createJson = await createRes.json();
-      const workId = createJson.workId || createJson?.data?.task_id;
-      if (!workId) throw new Error("aimusicapi.org didn't return a task id");
-
-      let audioUrl = null;
-      for (let attempt = 0; attempt < 40; attempt++) {
-        await new Promise(r => setTimeout(r, 6000));
-        const statusRes = await fetch(AIMUSICAPI_PROXY + "?workId=" + encodeURIComponent(workId));
-        if (!statusRes.ok) continue;
-        const statusJson = await statusRes.json();
-        console.log("aimusicapi status response:", statusJson);
-
-        const d = statusJson.data || statusJson;
-        const status = (d.status || d.state || "").toString().toLowerCase();
-        const track = Array.isArray(d.items) ? d.items[0] : (Array.isArray(d) ? d[0] : d);
-        const url = track?.audio_url || track?.audioUrl || d.audio_url || d.audioUrl;
-
-        if (url) { audioUrl = url; break; }
-        if (status.includes("fail") || status.includes("error")) {
-          throw new Error(d.message || d.msg || "Generation failed");
-        }
-        msg.innerHTML = 'Composing music... (' + (status || "processing") + ')<span class="cursor"></span>';
-      }
-      if (!audioUrl) throw new Error("Timed out, or the response format didn't match what we expected — check the console");
-
-      msg.classList.remove("thinking");
-      msg.innerHTML = "";
-      const audioEl = document.createElement("audio");
-      audioEl.src = audioUrl;
-      audioEl.controls = true;
-      msg.appendChild(audioEl);
-      chatEl.scrollTop = chatEl.scrollHeight;
-    } catch (e) {
-      msg.classList.remove("thinking");
-      msg.innerHTML = "⚠️ " + (e.message || "Music generation failed");
-    }
-
-    busy = false;
-    sendBtn.disabled = false;
-    imageBtn.disabled = false;
-    videoBtn.disabled = false;
-    musicBtn.disabled = false;
-  }
-
-  musicBtn.addEventListener("click", () => {
-    const text = inputEl.value.trim();
-    if (!text || busy) return;
-    inputEl.value = "";
-    inputEl.style.height = "auto";
-    busy = true;
-    sendBtn.disabled = true;
-    imageBtn.disabled = true;
-    videoBtn.disabled = true;
-    musicBtn.disabled = true;
-    addMessage(text, "user");
-    addMusicMessage(text);
   });
 
   async function handleSend() {
@@ -967,7 +813,6 @@
     sendBtn.disabled = true;
     imageBtn.disabled = true;
     videoBtn.disabled = true;
-    musicBtn.disabled = true;
 
     addMessage(text, "user");
     history.push({ role: "user", content: text });
@@ -987,7 +832,6 @@
     sendBtn.disabled = false;
     imageBtn.disabled = false;
     videoBtn.disabled = false;
-    musicBtn.disabled = false;
     inputEl.focus();
   }
 
