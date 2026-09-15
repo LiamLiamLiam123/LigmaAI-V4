@@ -117,6 +117,9 @@
     .msg img { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
     .msg video { max-width:100%; border-radius:8px; border:1px solid var(--border); display:block; margin-top:2px; }
     .msg audio { width:100%; margin-top:2px; }
+    .media-download-btn { margin-top:8px; padding:7px 14px; background:var(--bg2); border:1px solid var(--border2); border-radius:7px; color:var(--green-muted); font-family:'Share Tech Mono',monospace; font-size:11px; letter-spacing:1px; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; gap:6px; }
+    .media-download-btn:hover:not(:disabled) { background:#123012; border-color:var(--green-dim); color:var(--green); }
+    .media-download-btn:disabled { opacity:0.5; cursor:not-allowed; }
 
     /* ===== Terms & Conditions Gate ===== */
     #tosOverlay {
@@ -323,7 +326,7 @@
 
   <div class="settings-section">
     <div class="section-label">Video</div>
-    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY APIFRAME / KLING 3.0</div>
+    <div class="settings-sub" style="margin-bottom:10px;">POWERED BY COMETAPI / KLING</div>
     <div class="model-cards">
       <div class="model-card video-model selected" data-model="standard" onclick="selectModel(this)">
         <div class="model-radio"></div>
@@ -403,10 +406,10 @@
   const videoBtn  = document.getElementById("videoBtn");
   const modelPill = document.getElementById("modelPill");
 
-  // Apiframe blocks direct browser calls with your key attached (same CORS story
-  // as before), so this points at a proxy worker — see apiframe-video-proxy-worker.js
+  // CometAPI blocks direct browser calls with your key attached (same CORS story
+  // as before), so this points at a proxy worker — see cometapi-video-proxy-worker.js
   // for what to deploy. Replace this with your own worker's URL once deployed.
-  const APIFRAME_VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
+  const COMETAPI_VIDEO_PROXY = "https://ligmavideogen2.daddystephenson34.workers.dev/";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -441,6 +444,35 @@
   function removeWelcome() {
     const w = chatEl.querySelector(".welcome");
     if (w) w.remove();
+  }
+
+  // Fetches the media as a blob before downloading — plain <a download> tags don't
+  // reliably force a save for cross-origin URLs (the browser just navigates to it
+  // instead), so this pulls the bytes down first and saves via an object URL.
+  async function downloadMedia(url, filename, btn) {
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "⬇ DOWNLOADING...";
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+      btn.textContent = "✓ SAVED";
+    } catch (e) {
+      btn.textContent = "⚠ FAILED";
+    }
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }, 1800);
   }
 
   // ---- Markdown parsing ----
@@ -704,11 +736,11 @@
     addImageMessage(text);
   });
 
-  // ===== Video generation via Apiframe / Kling 3.0 =====
+  // ===== Video generation via CometAPI / Kling =====
   // Real text-to-video generation, not a composited image+voiceover. Flow:
-  // 1. POST to the proxy -> submits to Apiframe's Kling endpoint, returns a jobId.
-  // 2. Poll GET proxy?jobId=... every 5s -> the worker forwards Apiframe's job status.
-  // 3. Once status is COMPLETED, the video URL comes back in result.videoUrl.
+  // 1. POST to the proxy -> submits to CometAPI's Kling endpoint, returns a taskId.
+  // 2. Poll GET proxy?taskId=... every 5s -> the worker forwards CometAPI's task status.
+  // 3. Once task_status is "succeed", the video URL comes back in task_result.videos[0].url.
   async function addVideoMessage(userPrompt) {
     removeWelcome();
     const wrap = document.createElement("div");
@@ -727,12 +759,12 @@
     try {
       const payload = {
         prompt: userPrompt,
-        qualityMode: selectedVideoModel, // "standard" (720p) or "pro" (1080p)
+        qualityMode: selectedVideoModel, // "standard" -> mode "std", "pro" -> mode "pro"
         duration: 5,
         aspect_ratio: "16:9"
       };
 
-      const createRes = await fetch(APIFRAME_VIDEO_PROXY, {
+      const createRes = await fetch(COMETAPI_VIDEO_PROXY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -745,27 +777,29 @@
       }
 
       const createJson = await createRes.json();
-      const jobId = createJson.jobId || createJson.job_id;
-      if (!jobId) throw new Error("Apiframe didn't return a job id");
+      console.log("CometAPI submit response:", createJson);
+      const taskId = createJson.data?.task_id || createJson.task_id;
+      if (!taskId) throw new Error("CometAPI didn't return a task id — check the console");
 
       let videoUrl = null;
       for (let attempt = 0; attempt < 90; attempt++) {
         await new Promise(r => setTimeout(r, 5000));
-        const statusRes = await fetch(APIFRAME_VIDEO_PROXY + "?jobId=" + encodeURIComponent(jobId));
+        const statusRes = await fetch(COMETAPI_VIDEO_PROXY + "?taskId=" + encodeURIComponent(taskId));
         if (!statusRes.ok) continue;
         const statusJson = await statusRes.json();
-        console.log("Apiframe status response:", statusJson);
+        console.log("CometAPI status response:", statusJson);
 
-        const status = (statusJson.status || "").toUpperCase();
-        if (status === "COMPLETED" || status === "SUCCESS") {
-          videoUrl = statusJson.result?.videoUrl || statusJson.videoUrl || statusJson.result?.video_url;
+        const d = statusJson.data || statusJson;
+        const status = (d.task_status || d.status || "").toLowerCase();
+        if (status === "succeed" || status === "completed" || status === "success") {
+          videoUrl = d.task_result?.videos?.[0]?.url || d.videoUrl || d.video_url;
           if (!videoUrl) throw new Error("Render completed but no video URL came back — check the console");
           break;
         }
-        if (status === "FAILED" || status === "ERROR") {
-          throw new Error(statusJson.error || statusJson.message || "Render failed");
+        if (status === "failed" || status === "error") {
+          throw new Error(d.task_status_msg || d.error || d.message || "Render failed");
         }
-        msg.innerHTML = 'Generating video... (' + (status || "processing").toLowerCase() + ')<span class="cursor"></span>';
+        msg.innerHTML = 'Generating video... (' + (status || "processing") + ')<span class="cursor"></span>';
       }
       if (!videoUrl) throw new Error("Timed out waiting for the render to finish");
 
@@ -776,6 +810,13 @@
       videoEl.controls = true;
       videoEl.autoplay = false;
       msg.appendChild(videoEl);
+
+      const downloadBtn = document.createElement("button");
+      downloadBtn.className = "media-download-btn";
+      downloadBtn.textContent = "⬇ DOWNLOAD VIDEO";
+      downloadBtn.onclick = () => downloadMedia(videoUrl, "ligma-video-" + Date.now() + ".mp4", downloadBtn);
+      msg.appendChild(downloadBtn);
+
       chatEl.scrollTop = chatEl.scrollHeight;
     } catch (e) {
       msg.classList.remove("thinking");
