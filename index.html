@@ -448,13 +448,16 @@
 
   // Fetches the media as a blob before downloading — plain <a download> tags don't
   // reliably force a save for cross-origin URLs (the browser just navigates to it
-  // instead), so this pulls the bytes down first and saves via an object URL.
+  // instead), so this pulls the bytes down first and saves via an object URL. The
+  // fetch is routed through the CometAPI worker (?proxyUrl=...) because CometAPI's
+  // video CDN doesn't send CORS headers, so a direct browser fetch() to it fails.
   async function downloadMedia(url, filename, btn) {
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.textContent = "⬇ DOWNLOADING...";
     try {
-      const res = await fetch(url);
+      const proxied = COMETAPI_VIDEO_PROXY + "?proxyUrl=" + encodeURIComponent(url);
+      const res = await fetch(proxied);
       if (!res.ok) throw new Error("HTTP " + res.status);
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
