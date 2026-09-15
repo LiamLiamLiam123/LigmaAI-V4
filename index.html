@@ -403,10 +403,10 @@
   const videoBtn  = document.getElementById("videoBtn");
   const modelPill = document.getElementById("modelPill");
 
-  // CometAPI blocks direct browser calls with your key attached (same CORS story
-  // as before), so this points at a proxy worker — see cometapi-video-proxy-worker.js
+  // Apiframe blocks direct browser calls with your key attached (same CORS story
+  // as before), so this points at a proxy worker — see apiframe-video-proxy-worker.js
   // for what to deploy. Replace this with your own worker's URL once deployed.
-  const COMETAPI_VIDEO_PROXY = "https://YOUR-VIDEO-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+  const APIFRAME_VIDEO_PROXY = "https://ligmavideogen.daddystephenson34.workers.dev/";
   modelPill.textContent = MODEL_NAMES[selectedModel];
 
   document.getElementById("settingsBtn").onclick = () => {
@@ -704,11 +704,11 @@
     addImageMessage(text);
   });
 
-  // ===== Video generation via CometAPI / Kling =====
+  // ===== Video generation via Apiframe / Kling 3.0 =====
   // Real text-to-video generation, not a composited image+voiceover. Flow:
-  // 1. POST to the proxy -> submits to CometAPI's Kling endpoint, returns a taskId.
-  // 2. Poll GET proxy?taskId=... every 5s -> the worker forwards CometAPI's task status.
-  // 3. Once task_status is "succeed", the video URL comes back in task_result.videos[0].url.
+  // 1. POST to the proxy -> submits to Apiframe's Kling endpoint, returns a jobId.
+  // 2. Poll GET proxy?jobId=... every 5s -> the worker forwards Apiframe's job status.
+  // 3. Once status is COMPLETED, the video URL comes back in result.videoUrl.
   async function addVideoMessage(userPrompt) {
     removeWelcome();
     const wrap = document.createElement("div");
@@ -727,12 +727,12 @@
     try {
       const payload = {
         prompt: userPrompt,
-        qualityMode: selectedVideoModel, // "standard" -> mode "std", "pro" -> mode "pro"
+        qualityMode: selectedVideoModel, // "standard" (720p) or "pro" (1080p)
         duration: 5,
         aspect_ratio: "16:9"
       };
 
-      const createRes = await fetch(COMETAPI_VIDEO_PROXY, {
+      const createRes = await fetch(APIFRAME_VIDEO_PROXY, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -745,29 +745,27 @@
       }
 
       const createJson = await createRes.json();
-      console.log("CometAPI submit response:", createJson);
-      const taskId = createJson.data?.task_id || createJson.task_id;
-      if (!taskId) throw new Error("CometAPI didn't return a task id — check the console");
+      const jobId = createJson.jobId || createJson.job_id;
+      if (!jobId) throw new Error("Apiframe didn't return a job id");
 
       let videoUrl = null;
       for (let attempt = 0; attempt < 90; attempt++) {
         await new Promise(r => setTimeout(r, 5000));
-        const statusRes = await fetch(COMETAPI_VIDEO_PROXY + "?taskId=" + encodeURIComponent(taskId));
+        const statusRes = await fetch(APIFRAME_VIDEO_PROXY + "?jobId=" + encodeURIComponent(jobId));
         if (!statusRes.ok) continue;
         const statusJson = await statusRes.json();
-        console.log("CometAPI status response:", statusJson);
+        console.log("Apiframe status response:", statusJson);
 
-        const d = statusJson.data || statusJson;
-        const status = (d.task_status || d.status || "").toLowerCase();
-        if (status === "succeed" || status === "completed" || status === "success") {
-          videoUrl = d.task_result?.videos?.[0]?.url || d.videoUrl || d.video_url;
+        const status = (statusJson.status || "").toUpperCase();
+        if (status === "COMPLETED" || status === "SUCCESS") {
+          videoUrl = statusJson.result?.videoUrl || statusJson.videoUrl || statusJson.result?.video_url;
           if (!videoUrl) throw new Error("Render completed but no video URL came back — check the console");
           break;
         }
-        if (status === "failed" || status === "error") {
-          throw new Error(d.task_status_msg || d.error || d.message || "Render failed");
+        if (status === "FAILED" || status === "ERROR") {
+          throw new Error(statusJson.error || statusJson.message || "Render failed");
         }
-        msg.innerHTML = 'Generating video... (' + (status || "processing") + ')<span class="cursor"></span>';
+        msg.innerHTML = 'Generating video... (' + (status || "processing").toLowerCase() + ')<span class="cursor"></span>';
       }
       if (!videoUrl) throw new Error("Timed out waiting for the render to finish");
 
